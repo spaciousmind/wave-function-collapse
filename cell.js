@@ -1,11 +1,13 @@
 class Cell {
-	constructor(value) {
+	constructor(numOptions, row, col) {
+		this.row = row
+		this.col = col
 		this.collapsed = false;
-		if (value instanceof Array) {
-			this.options = value;
+		if (numOptions instanceof Array) {
+			this.options = numOptions;
 		} else {
 			this.options = [];
-			for (let i = 0; i < value; i++) {
+			for (let i = 0; i < numOptions; i++) {
 				this.options[i] = i;
 			}
 		}

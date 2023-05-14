@@ -2,7 +2,7 @@ const tiles = [];
 const tileImages = [];
 
 let grid = [];
-const DIM = 9;
+const DIM = 5;
 
 function preload() {
   const path = "tiles/mytiles/"
@@ -42,12 +42,17 @@ tiles[21] = new Tile(tileImages[21], ['BCB', 'BBA', 'AAA', 'ACB']);
 tiles[22] = new Tile(tileImages[22], ['BCB', 'BCA', 'ABB', 'BBB']);
 tiles[23] = new Tile(tileImages[23], ['BCB', 'BBA', 'ABB', 'BCB']);
 
+//addTileRotations()
 
-for (let i = 2; i < 24; i++) {
-  for (let j = 1; j < 4; j++) {
-   tiles.push(tiles[i].rotate(j));
+function addTileRotations(){
+  for (let i = 2; i < 24; i++) {
+    for (let j = 1; j < 4; j++) {
+    tiles.push(tiles[i].rotate(j));
+    }
   }
 }
+
+console.log("tiles length = " + tiles.length)
 
 
 
@@ -60,37 +65,40 @@ for (let i = 0; i < tiles.length; i ++) {
 
 
 // create cell for each spot on the grid
-for (let i = 0; i < DIM * DIM; i++) {
-    grid[i] = new Cell(tiles.length);
+// for (let i = 0; i < DIM * DIM; i++) {
+//     grid[i] = new Cell(tiles.length);
+//     grid[i] = i //add index as a property
+//     console.log(i);
  
+startOver()
 
-      // Check if cell is on the edge of the grid
-    const row = Math.floor(i / DIM);
-    const col = i % DIM;
-    if (row === 0 || row === DIM - 1 || col === 0 || col === DIM - 1) {
-      grid[i].options = [0];
-      grid[i].collapsed = true;
-         console.log(grid[i])
-    }
+//broken collapse to zero code
+// for (let i = 0; i < DIM * DIM; i++) {
+//       // Check if cell is on the edge of the grid
+//     const row = Math.floor(i / DIM);
+//     const col = i % DIM;
+//     if (row === 0 || row === DIM - 1 || col === 0 || col === DIM - 1) {
+//       grid[i].options = [0];
+//       grid[i].collapsed = true;
+//          console.log(grid[i])
+//     }
+// }
 
 
 
  //   console.log(i)
-  noLoop();
-}}
+noLoop()
+}
+ // noLoop();
+ 
 
 function startOver() {
-  for (let i = 0; i < DIM * DIM; i++) {
-    grid[i] = new Cell(tiles.length);
-
-    // Check if cell is on the edge of the grid
-    const row = Math.floor(i / DIM);
-    const col = i % DIM;
-    if (row === 0 || row === DIM - 1 || col === 0 || col === DIM - 1) {
-      grid[i].options = [0];
-      grid[i].collapsed = true;
+  for (let row = 0; row < DIM; row++) {
+    for (let col = 0; col < DIM; col++) {
+      let index = col + row * DIM;
+      grid[index] = new Cell(tiles.length, col, row);
     }
-};
+  }
 }
 
 
@@ -113,7 +121,7 @@ function checkValid(arr, valid) {
 function mousePressed() {
   console.log("------");
   startOver();
-  loop(); // start drawing
+ // loop(); // start drawing
  redraw();
 }
 
@@ -121,37 +129,10 @@ function mousePressed() {
 
 
 function draw() {
+  console.log("redraw")
   background(20,20,20);
 
-  const w = width / DIM;
-  const h = height / DIM;
-  for (let j = 0; j < DIM; j++) {
-    for (let i = 0; i < DIM; i++) {
-      let cell = grid [i + j * DIM];
-      let rectX = i * w
-      let rectY = j * h
-      if (cell.collapsed) {
-        let index = cell.options[0];
-        image(tiles[index].img, i * w, j * h, w, h);
-    //    debugger;
-      } else {
 
-        fill(0);
-        stroke(255);
-        rect(rectX, rectY, w, h)
-        
-
-      }
-      if (mouseX >= rectX && mouseX <= rectX + w && mouseY >= rectY && mouseY <= rectY + h) {
-        console.log(`Available options for cell (${i},${j}): ${cell.options}`);
-        console.log(cell)
- 
-        fill(255, 0, 0, 128);
-        rect(rectX, rectY, w, h);
-      }
-
-    }
-  }
 
 
 
@@ -250,5 +231,37 @@ function draw() {
       }
     }
   grid = nextGrid; 
+
+
+  const w = width / DIM;
+  const h = height / DIM;
+  for (let row = 0; row < DIM; row++) {
+    for (let col = 0; col < DIM; col++) {
+      let cell = grid [col + row * DIM];
+      console.log(cell)
+      let rectX = col * w
+      let rectY = row * h
+      if (cell.collapsed) {
+        let index = cell.options[0];
+        image(tiles[index].img, col * w, row * h, w, h);
+    //    debugger;
+      } else {
+
+        fill(0);
+        stroke(255);
+        rect(rectX, rectY, w, h)
+        
+
+      }
+      if (mouseX >= rectX && mouseX <= rectX + w && mouseY >= rectY && mouseY <= rectY + h) {
+        console.log(`Available options for cell (${col},${row}): ${cell.options}`);
+        console.log(cell)
+ 
+        fill(255, 0, 0, 128);
+        rect(rectX, rectY, w, h);
+      }
+
+    }
+  }
 }
 
