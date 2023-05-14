@@ -1,0 +1,57 @@
+To draw the next cell based on a function call rather than in the draw() loop, you can refactor your code as follows:
+
+Create a new function called drawNextCell().
+Inside drawNextCell(), add the code that you currently have inside the draw() loop to draw the next cell.
+Replace the relevant parts of the code with variables or parameters that can be passed into drawNextCell() as arguments.
+Call drawNextCell() from mousePressed() or any other relevant function.
+Here's an example of how you can modify your code:
+
+javascript
+Copy code
+let tiles = [];
+let tileSize = 100;
+let currX = 0;
+let currY = 0;
+
+function preload() {
+  for (let i = 0; i < 4; i++) {
+    tiles.push(loadImage(`assets/${i}.jpg`));
+  }
+}
+
+function setup() {
+  createCanvas(500, 500);
+  analyzeTiles();
+}
+
+function analyzeTiles() {
+  for (let i = 0; i < tiles.length; i++) {
+    let tile = new Tile(tiles[i], getEdges(tiles[i]));
+    tiles[i] = tile;
+  }
+
+  for (let i = 0; i < tiles.length; i++) {
+    tiles[i].analyze(tiles);
+  }
+}
+
+function drawNextCell(x, y) {
+  let cell = getCell(x, y);
+  cell.show(x, y);
+}
+
+function mousePressed() {
+  drawNextCell(currX, currY);
+  currX += tileSize;
+  if (currX >= width) {
+    currX = 0;
+    currY += tileSize;
+  }
+}
+
+function getCell(x, y) {
+  let col = floor(x / tileSize);
+  let row = floor(y / tileSize);
+  return new Cell(col, row, tileSize);
+}
+In this example, I've created a new function called drawNextCell(x, y) that takes in the x and y coordinates of the cell to be drawn. The draw() loop code for drawing the next cell has been moved to this function. The mousePressed() function has been modified to call drawNextCell() with the current currX and currY values, and then increment currX and currY. Finally, I've added a getCell(x, y) function that takes in the x and y coordinates of a cell and returns a Cell object for that cell.
