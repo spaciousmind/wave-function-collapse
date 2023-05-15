@@ -1,8 +1,9 @@
 const tiles = [];
 const tileImages = [];
+let state = "";
 
 let grid = [];
-const DIM = 5;
+const DIM = 10;
 
 function preload() {
   const path = "tiles/mytiles/"
@@ -14,6 +15,11 @@ function preload() {
 
 function setup() {
 createCanvas(1000, 1000);
+
+  // add event listener for right click
+  canvas.addEventListener("contextmenu", function(e) {
+    e.preventDefault();
+  }, false);
 //randomSeed(10);
 
 // loaded and created the tiles
@@ -52,7 +58,7 @@ function addTileRotations(){
   }
 }
 
-console.log("tiles length = " + tiles.length)
+//console.log("tiles length = " + tiles.length)
 
 
 
@@ -70,7 +76,7 @@ for (let i = 0; i < tiles.length; i ++) {
 //     grid[i] = i //add index as a property
 //     console.log(i);
  
-startOver()
+setupCells()
 
 //broken collapse to zero code
 // for (let i = 0; i < DIM * DIM; i++) {
@@ -87,18 +93,19 @@ startOver()
 
 
  //   console.log(i)
-noLoop()
+
 }
  // noLoop();
  
 
-function startOver() {
+function setupCells() {
   for (let row = 0; row < DIM; row++) {
     for (let col = 0; col < DIM; col++) {
       let index = col + row * DIM;
       grid[index] = new Cell(tiles.length, col, row);
     }
   }
+  state = "running"
 }
 
 
@@ -116,28 +123,86 @@ function checkValid(arr, valid) {
   }
 }
 
- 
-
 function mousePressed() {
-  console.log("------");
-  startOver();
- // loop(); // start drawing
- redraw();
+if (mouseButton === LEFT) {
+  leftMousePressed();
+} else if (mouseButton === RIGHT) {
+  rightMousePressed();
+}
 }
 
-// }
+
+function leftMousePressed() {
+  pickNextCell()
+  drawNextCell()
+}
+
+function rightMousePressed() {
+setupCells()
+}
+
 
 
 function draw() {
-  console.log("redraw")
+//  console.log("redraw")
   background(20,20,20);
 
+mouseSelectCell()
+  if (state = "running") {
+      pickNextCell()
+      drawNextCell()
+    }
+}
 
+function mouseSelectCell() {
+  const w = width / DIM;
+  const h = height / DIM;
+    for (let row = 0; row < DIM; row++) {
+      for (let col = 0; col < DIM; col++) {
+        let rectX = col * w
+        let rectY = row * h
+          if (mouseX >= rectX && mouseX <= rectX + w && mouseY >= rectY && mouseY <= rectY + h) {
+            fill(255, 0, 0, 128);
+            rect(rectX, rectY, w, h);
+          }
+      }
+    }
+    }
 
+function drawNextCell() {
+  const w = width / DIM;
+  const h = height / DIM;
+  for (let row = 0; row < DIM; row++) {
+    for (let col = 0; col < DIM; col++) {
+      let cell = grid [col + row * DIM];
+      
+      let rectX = col * w
+      let rectY = row * h
+      if (cell.collapsed) {
+        let index = cell.options[0];
+          if (index == undefined) {
+            console.log("broken")
+            state = "stopped"
+            console.log(state)
+          } else {
+            image(tiles[index].img, col * w, row * h, w, h);
+          }
+    //    debugger;
+      } else {
 
+        fill(0);
+        stroke(255);
+        rect(rectX, rectY, w, h)
+        
 
+      }
 
-  //pick cell with least entropy
+    }
+  }
+}
+
+function pickNextCell() {
+   //pick cell with least entropy
   let gridCopy = grid.slice();
   gridCopy = gridCopy.filter((a) => !a.collapsed);
   if (gridCopy.length == 0) {
@@ -158,12 +223,13 @@ function draw() {
   }
   
   if (stopIndex > 0) gridCopy.splice(stopIndex);
+ // console.log(gridCopy)
+//  console.log ("gridcopy length " + gridCopy.length)
   const cell = random(gridCopy);
 //  console.log(cell.options)
   cell.collapsed = true;
   const pick = random(cell.options);
-  console.log(cell.options)
-  if (pick === undefined) {
+   if (pick === undefined) {
     console.log(`Cell ${cell} has no options available`);
     
     noLoop()
@@ -231,37 +297,5 @@ function draw() {
       }
     }
   grid = nextGrid; 
-
-
-  const w = width / DIM;
-  const h = height / DIM;
-  for (let row = 0; row < DIM; row++) {
-    for (let col = 0; col < DIM; col++) {
-      let cell = grid [col + row * DIM];
-      console.log(cell)
-      let rectX = col * w
-      let rectY = row * h
-      if (cell.collapsed) {
-        let index = cell.options[0];
-        image(tiles[index].img, col * w, row * h, w, h);
-    //    debugger;
-      } else {
-
-        fill(0);
-        stroke(255);
-        rect(rectX, rectY, w, h)
-        
-
-      }
-      if (mouseX >= rectX && mouseX <= rectX + w && mouseY >= rectY && mouseY <= rectY + h) {
-        console.log(`Available options for cell (${col},${row}): ${cell.options}`);
-        console.log(cell)
- 
-        fill(255, 0, 0, 128);
-        rect(rectX, rectY, w, h);
-      }
-
-    }
-  }
 }
 
