@@ -14,13 +14,11 @@ function preload() {
 }
 
 function setup() {
-createCanvas(1000, 1000);
+  createCanvas(1000, 1000);
 
   // add event listener for right click
-  canvas.addEventListener("contextmenu", function(e) {
-    e.preventDefault();
-  }, false);
-//randomSeed(10);
+  canvas.addEventListener("contextmenu", function(e) { e.preventDefault() }, false);
+  //randomSeed(10);
 
 // loaded and created the tiles
 tiles[0] = new Tile(tileImages[0], ['AAA', 'AAA', 'AAA', 'AAA']);
@@ -50,13 +48,7 @@ tiles[23] = new Tile(tileImages[23], ['BCB', 'BBA', 'ABB', 'BCB']);
 
 //addTileRotations()
 
-function addTileRotations(){
-  for (let i = 2; i < 24; i++) {
-    for (let j = 1; j < 4; j++) {
-    tiles.push(tiles[i].rotate(j));
-    }
-  }
-}
+
 
 //console.log("tiles length = " + tiles.length)
 
@@ -96,7 +88,15 @@ setupCells()
 
 }
  // noLoop();
- 
+
+
+function addTileRotations(){
+  for (let i = 2; i < 24; i++) {
+    for (let j = 1; j < 4; j++) {
+    tiles.push(tiles[i].rotate(j));
+    }
+  }
+}
 
 function setupCells() {
   for (let row = 0; row < DIM; row++) {
@@ -124,11 +124,11 @@ function checkValid(arr, valid) {
 }
 
 function mousePressed() {
-if (mouseButton === LEFT) {
-  leftMousePressed();
-} else if (mouseButton === RIGHT) {
-  rightMousePressed();
-}
+  if (mouseButton === LEFT) {
+    leftMousePressed();
+  } else if (mouseButton === RIGHT) {
+    rightMousePressed();
+  }
 }
 
 
@@ -147,27 +147,54 @@ function draw() {
 //  console.log("redraw")
   background(20,20,20);
 
-mouseSelectCell()
+
   if (state = "running") {
       pickNextCell()
       drawNextCell()
-    }
+  }
+  mouseOverCell()
 }
 
-function mouseSelectCell() {
+// function mouseOverCell() {
+//   const w = width / DIM;
+//   const h = height / DIM;
+//     for (let row = 0; row < DIM; row++) {
+//       for (let col = 0; col < DIM; col++) {
+//         let rectX = col * w
+//         let rectY = row * h
+//           if (mouseX >= rectX && mouseX <= rectX + w && mouseY >= rectY && mouseY <= rectY + h) {
+//             fill(255, 0, 0, 128);
+//             rect(rectX, rectY, w, h);
+//           }
+//       }
+//     }
+//     }
+
+
+function mouseOverCell() {
   const w = width / DIM;
   const h = height / DIM;
-    for (let row = 0; row < DIM; row++) {
-      for (let col = 0; col < DIM; col++) {
-        let rectX = col * w
-        let rectY = row * h
-          if (mouseX >= rectX && mouseX <= rectX + w && mouseY >= rectY && mouseY <= rectY + h) {
-            fill(255, 0, 0, 128);
-            rect(rectX, rectY, w, h);
-          }
+  for (let row = 0; row < DIM; row++) {
+    for (let col = 0; col < DIM; col++) {
+      let rectX = col * w;
+      let rectY = row * h;
+      if (mouseX >= rectX && mouseX <= rectX + w && mouseY >= rectY && mouseY <= rectY + h) {
+        fill(255, 0, 0, 128);
+        rect(rectX, rectY, w, h);
+        return {row: row, col: col}; // return the row and column of the cell
       }
     }
-    }
+  }
+  return null; // if the mouse is not over any cell, return null
+}
+
+function mouseMoved() {
+  let currentCell = mouseOverCell();
+  if (currentCell != null) {
+    console.log(`Mouse is over cell (${currentCell.row}, ${currentCell.col})`);
+  }
+}
+
 
 function drawNextCell() {
   const w = width / DIM;
