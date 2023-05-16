@@ -2,6 +2,8 @@ class Cell {
 	constructor(numOptions, row, col) {
 		this.row = row
 		this.col = col
+		console.log(`Created cell at (${this.row}, ${this.col})`);
+
 		this.collapsed = false;
 		if (numOptions instanceof Array) {
 			this.options = numOptions;

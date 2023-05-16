@@ -1,6 +1,7 @@
 const tiles = [];
 const tileImages = [];
 let state = "";
+let myCell = "";
 
 let grid = [];
 const DIM = 10;
@@ -47,11 +48,7 @@ tiles[22] = new Tile(tileImages[22], ['BCB', 'BCA', 'ABB', 'BBB']);
 tiles[23] = new Tile(tileImages[23], ['BCB', 'BBA', 'ABB', 'BCB']);
 
 //addTileRotations()
-
-
-
 //console.log("tiles length = " + tiles.length)
-
 
 
 // generate the adjacency rules based on edges
@@ -60,34 +57,11 @@ for (let i = 0; i < tiles.length; i ++) {
   tile.analyze(tiles);
 }
 
-
-
-// create cell for each spot on the grid
-// for (let i = 0; i < DIM * DIM; i++) {
-//     grid[i] = new Cell(tiles.length);
-//     grid[i] = i //add index as a property
-//     console.log(i);
- 
 setupCells()
-
-//broken collapse to zero code
-// for (let i = 0; i < DIM * DIM; i++) {
-//       // Check if cell is on the edge of the grid
-//     const row = Math.floor(i / DIM);
-//     const col = i % DIM;
-//     if (row === 0 || row === DIM - 1 || col === 0 || col === DIM - 1) {
-//       grid[i].options = [0];
-//       grid[i].collapsed = true;
-//          console.log(grid[i])
-//     }
-// }
-
-
-
- //   console.log(i)
+console.log("first setup cells")
 
 }
- // noLoop();
+
 
 
 function addTileRotations(){
@@ -103,6 +77,8 @@ function setupCells() {
     for (let col = 0; col < DIM; col++) {
       let index = col + row * DIM;
       grid[index] = new Cell(tiles.length, col, row);
+    //  console.log(`Created cell at index ${index}, row ${row}, col ${col}`);
+
     }
   }
   state = "running"
@@ -133,8 +109,18 @@ function mousePressed() {
 
 
 function leftMousePressed() {
-  pickNextCell()
-  drawNextCell()
+  // pickNextCell()
+  // drawNextCell()
+
+  let myCell = mouseOverCell();
+  if (myCell != null) {
+    console.log(`Mouse is over cell (${myCell.row}, ${myCell.col})`);
+    console.log('myCell collapsed = ' + myCell.collapsed);
+    console.log('myCell options = ' + myCell.options);
+    console.log(myCell.options);
+    console.log('myCell row = ' + myCell.row)
+  }
+
 }
 
 function rightMousePressed() {
@@ -155,20 +141,6 @@ function draw() {
   mouseOverCell()
 }
 
-// function mouseOverCell() {
-//   const w = width / DIM;
-//   const h = height / DIM;
-//     for (let row = 0; row < DIM; row++) {
-//       for (let col = 0; col < DIM; col++) {
-//         let rectX = col * w
-//         let rectY = row * h
-//           if (mouseX >= rectX && mouseX <= rectX + w && mouseY >= rectY && mouseY <= rectY + h) {
-//             fill(255, 0, 0, 128);
-//             rect(rectX, rectY, w, h);
-//           }
-//       }
-//     }
-//     }
 
 
 function mouseOverCell() {
@@ -178,10 +150,13 @@ function mouseOverCell() {
     for (let col = 0; col < DIM; col++) {
       let rectX = col * w;
       let rectY = row * h;
+      let cell = grid [col + row * DIM];
       if (mouseX >= rectX && mouseX <= rectX + w && mouseY >= rectY && mouseY <= rectY + h) {
         fill(255, 0, 0, 128);
         rect(rectX, rectY, w, h);
-        return {row: row, col: col}; // return the row and column of the cell
+       // return {cell: cell, row: row, col: col}; // return the row and column of the cell
+       return cell; // return the entire cell object
+
       }
     }
   }
@@ -189,10 +164,10 @@ function mouseOverCell() {
 }
 
 function mouseMoved() {
-  let currentCell = mouseOverCell();
-  if (currentCell != null) {
-    console.log(`Mouse is over cell (${currentCell.row}, ${currentCell.col})`);
-  }
+  // let myCell = mouseOverCell();
+  // if (myCell != null) {
+  //  // console.log(`Mouse is over cell (${myCell.row}, ${myCell.col})`);
+  // }
 }
 
 
@@ -265,64 +240,69 @@ function pickNextCell() {
   }
   cell.options = [pick];
 
-  const nextGrid = [];
- // console.log(grid);
-;  for (let j = 0; j < DIM; j++) {
-    for (let i = 0; i < DIM; i++){
-      let index = i + j * DIM;
-      if (grid[index].collapsed){
-        nextGrid[index] = grid[index];
-      } else {
-          let options = new Array(tiles.length).fill(0).map((x, i) => i);
-      //look up
-          if (j > 0) {
-            let up = grid[i + (j - 1) * DIM];
-            let validOptions = [];
-            for (let option of up.options) {
-              let valid = tiles[option].down;
-              validOptions = validOptions.concat(valid);
-            }
+  setupGrid()
+}
+
+
+function setupGrid(){
+const nextGrid = [];
+// console.log(grid);
+for (let row = 0; row < DIM; row++) {
+  for (let col = 0; col < DIM; col++) {
+      let index = col + row * DIM;
+     if (grid[index].collapsed){
+       nextGrid[index] = grid[index];
+     } else {
+         let options = new Array(tiles.length).fill(0).map((x, col) => col);
+     //look up
+         if (row > 0) {
+           let up = grid[col + (row - 1) * DIM];
+           let validOptions = [];
+           for (let option of up.options) {
+             let valid = tiles[option].down;
+             validOptions = validOptions.concat(valid);
+           }
+           checkValid(options, validOptions);
+         }
+
+         //look right
+         if (col < DIM - 1) {
+           let right = grid[col + 1 + row * DIM];
+           let validOptions = [];
+           for (let option of right.options) {
+             let valid = tiles[option].left;
+             validOptions = validOptions.concat(valid);
+           }
+           checkValid(options, validOptions);
+         }
+
+         //look down
+         if (row < DIM - 1) {
+           let down = grid[col + (row + 1) * DIM];
+           let validOptions = [];
+           for (let option of down.options) {
+             let valid = tiles[option].up;
+             validOptions = validOptions.concat(valid);
+           }
             checkValid(options, validOptions);
-          }
+         }
 
-          //look right
-          if (i < DIM - 1) {
-            let right = grid[i + 1 + j * DIM];
-            let validOptions = [];
-            for (let option of right.options) {
-              let valid = tiles[option].left;
-              validOptions = validOptions.concat(valid);
-            }
-            checkValid(options, validOptions);
-          }
+         //look left
+         if (col > 0) {
+           let left = grid[col - 1 + row * DIM];
+           let validOptions = [];
+           for (let option of left.options) {
+             let valid = tiles[option].right;
+             validOptions = validOptions.concat(valid);
+           }
+           checkValid(options, validOptions);
+         }
 
-          //look down
-          if (j < DIM - 1) {
-            let down = grid[i + (j + 1) * DIM];
-            let validOptions = [];
-            for (let option of down.options) {
-              let valid = tiles[option].up;
-              validOptions = validOptions.concat(valid);
-            }
-             checkValid(options, validOptions);
-          }
-
-          //look left
-          if (i > 0) {
-            let left = grid[i - 1 + j * DIM];
-            let validOptions = [];
-            for (let option of left.options) {
-              let valid = tiles[option].right;
-              validOptions = validOptions.concat(valid);
-            }
-            checkValid(options, validOptions);
-          }
-
-          //I could immediately collapse if only one option
-          nextGrid[index] = new Cell(options);
-        }
-      }
-    }
-  grid = nextGrid; 
+         //I could immediately collapse if only one option
+         nextGrid[index] = new Cell(options, row, col);
+       }
+     }
+   }
+ grid = nextGrid; 
 }
 
