@@ -6,6 +6,7 @@ let progressFlag = false; // Flag to indicate whether to progress
 let stepCount = 0; // Step counter
 
 let grid = [];
+const cellHistory = []; // Create an array to store the cell history
 const DIM = 10;
 
 function preload() {
@@ -23,44 +24,44 @@ function setup() {
   canvas.addEventListener("contextmenu", function(e) { e.preventDefault() }, false);
   //randomSeed(10);
 
-// loaded and created the tiles
-tiles[0] = new Tile(tileImages[0], ['AAA', 'AAA', 'AAA', 'AAA']);
-tiles[1] = new Tile(tileImages[1], ['BBA', 'AAA', 'AAA', 'ABB']);
-tiles[2] = new Tile(tileImages[2], ['BCA', 'AAA', 'AAA', 'ACB']);
-tiles[3] = new Tile(tileImages[3], ['BCB', 'BCB', 'BCB', 'BCB']);
-tiles[4] = new Tile(tileImages[4], ['BCB', 'BCB', 'BCB', 'BCB']);
-tiles[5] = new Tile(tileImages[5], ['BBB', 'BBA', 'ABB', 'BBB']);
-tiles[6] = new Tile(tileImages[6], ['BBB', 'BBB', 'BBB', 'BBB']);
-tiles[7] = new Tile(tileImages[7], ['BBB', 'BAB', 'BAB', 'BBB']);
-tiles[8] = new Tile(tileImages[8], ['BCB', 'BAB', 'BAB', 'BCB']);
-tiles[9] = new Tile(tileImages[9], ['BBB', 'BBA', 'AAA', 'ABB']);
-tiles[10] = new Tile(tileImages[10], ['BBB', 'BCA', 'ABB', 'BCB']);
-tiles[11] = new Tile(tileImages[11], ['BCB', 'BBA', 'BCA', 'BBB']);
-tiles[12] = new Tile(tileImages[12], ['BBB', 'BCB', 'BBB', 'BCB']);
-tiles[13] = new Tile(tileImages[13], ['BAB', 'BBB', 'BAB', 'BBB']);
-tiles[14] = new Tile(tileImages[14], ['BAB', 'BCB', 'BAB', 'BCB']);
-tiles[15] = new Tile(tileImages[15], ['BCB', 'BBB', 'BBB', 'BCB']);
-tiles[16] = new Tile(tileImages[16], ['BBB', 'BCA', 'ACB', 'BBB']);
-tiles[17] = new Tile(tileImages[17], ['BBB', 'BBA', 'ACB', 'BCB']);
-tiles[18] = new Tile(tileImages[18], ['BBB', 'BCA', 'AAA', 'ACB']);
-tiles[19] = new Tile(tileImages[19], ['BAB', 'BBA', 'AAA', 'ABB']);
-tiles[20] = new Tile(tileImages[20], ['BAB', 'BCA', 'AAA', 'ACB']);
-tiles[21] = new Tile(tileImages[21], ['BCB', 'BBA', 'AAA', 'ACB']);
-tiles[22] = new Tile(tileImages[22], ['BCB', 'BCA', 'ABB', 'BBB']);
-tiles[23] = new Tile(tileImages[23], ['BCB', 'BBA', 'ABB', 'BCB']);
+  // loaded and created the tiles
+  tiles[0] = new Tile(tileImages[0], ['AAA', 'AAA', 'AAA', 'AAA']);
+  tiles[1] = new Tile(tileImages[1], ['BBA', 'AAA', 'AAA', 'ABB']);
+  tiles[2] = new Tile(tileImages[2], ['BCA', 'AAA', 'AAA', 'ACB']);
+  tiles[3] = new Tile(tileImages[3], ['BCB', 'BCB', 'BCB', 'BCB']);
+  tiles[4] = new Tile(tileImages[4], ['BCB', 'BCB', 'BCB', 'BCB']);
+  tiles[5] = new Tile(tileImages[5], ['BBB', 'BBA', 'ABB', 'BBB']);
+  tiles[6] = new Tile(tileImages[6], ['BBB', 'BBB', 'BBB', 'BBB']);
+  tiles[7] = new Tile(tileImages[7], ['BBB', 'BAB', 'BAB', 'BBB']);
+  tiles[8] = new Tile(tileImages[8], ['BCB', 'BAB', 'BAB', 'BCB']);
+  tiles[9] = new Tile(tileImages[9], ['BBB', 'BBA', 'AAA', 'ABB']);
+  tiles[10] = new Tile(tileImages[10], ['BBB', 'BCA', 'ABB', 'BCB']);
+  tiles[11] = new Tile(tileImages[11], ['BCB', 'BBA', 'BCA', 'BBB']);
+  tiles[12] = new Tile(tileImages[12], ['BBB', 'BCB', 'BBB', 'BCB']);
+  tiles[13] = new Tile(tileImages[13], ['BAB', 'BBB', 'BAB', 'BBB']);
+  tiles[14] = new Tile(tileImages[14], ['BAB', 'BCB', 'BAB', 'BCB']);
+  tiles[15] = new Tile(tileImages[15], ['BCB', 'BBB', 'BBB', 'BCB']);
+  tiles[16] = new Tile(tileImages[16], ['BBB', 'BCA', 'ACB', 'BBB']);
+  tiles[17] = new Tile(tileImages[17], ['BBB', 'BBA', 'ACB', 'BCB']);
+  tiles[18] = new Tile(tileImages[18], ['BBB', 'BCA', 'AAA', 'ACB']);
+  tiles[19] = new Tile(tileImages[19], ['BAB', 'BBA', 'AAA', 'ABB']);
+  tiles[20] = new Tile(tileImages[20], ['BAB', 'BCA', 'AAA', 'ACB']);
+  tiles[21] = new Tile(tileImages[21], ['BCB', 'BBA', 'AAA', 'ACB']);
+  tiles[22] = new Tile(tileImages[22], ['BCB', 'BCA', 'ABB', 'BBB']);
+  tiles[23] = new Tile(tileImages[23], ['BCB', 'BBA', 'ABB', 'BCB']);
 
-addTileRotations()
-//console.log("tiles length = " + tiles.length)
+  addTileRotations()
+  //console.log("tiles length = " + tiles.length)
 
 
-// generate the adjacency rules based on edges
-for (let i = 0; i < tiles.length; i ++) {
-  const tile = tiles[i];
-  tile.analyze(tiles);
-}
+  // generate the adjacency rules based on edges
+  for (let i = 0; i < tiles.length; i ++) {
+    const tile = tiles[i];
+    tile.analyze(tiles);
+  }
 
-setupCells()
-console.log("first setup cells")
+  setupCells()
+  console.log("first setup cells")
 
 }
 
@@ -79,8 +80,7 @@ function setupCells() {
     for (let col = 0; col < DIM; col++) {
       let index = col + row * DIM;
       grid[index] = new Cell(tiles.length, col, row);
-    //  console.log(`Created cell at index ${index}, row ${row}, col ${col}`);
-
+      cellHistory.push({row: row, col: col}); // Add the cell's position to the cell history
     }
   }
   state = "running"
@@ -144,6 +144,7 @@ function leftMousePressed() {
 
 function rightMousePressed() {
  // setupCells()
+ console.log(cellHistory)
 }
 
 
