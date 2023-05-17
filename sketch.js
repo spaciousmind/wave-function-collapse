@@ -1,7 +1,9 @@
 const tiles = [];
 const tileImages = [];
-let state = "";
 let myCell = "";
+let state = "paused"; // Set initial state to paused
+let progressFlag = false; // Flag to indicate whether to progress
+let stepCount = 0; // Step counter
 
 let grid = [];
 const DIM = 10;
@@ -47,7 +49,7 @@ tiles[21] = new Tile(tileImages[21], ['BCB', 'BBA', 'AAA', 'ACB']);
 tiles[22] = new Tile(tileImages[22], ['BCB', 'BCA', 'ABB', 'BBB']);
 tiles[23] = new Tile(tileImages[23], ['BCB', 'BBA', 'ABB', 'BCB']);
 
-//addTileRotations()
+addTileRotations()
 //console.log("tiles length = " + tiles.length)
 
 
@@ -107,36 +109,52 @@ function mousePressed() {
   }
 }
 
+function keyPressed() {
+  if (keyCode === RIGHT_ARROW) {
+    progressFlag = true; // Set flag to progress
+    intervalId = setInterval(continueProgress, 100); // Call handleProgress() every 0.1 seconds
+
+  }
+}
+
+function keyReleased() {
+  if (keyCode === RIGHT_ARROW) {
+    progressFlag = false; // Clear flag to progress
+    clearInterval(intervalId); // Stop calling handleProgress()
+  }
+}
+
+
+function continueProgress() {
+  progressFlag = true;
+}
+
 
 function leftMousePressed() {
-  // pickNextCell()
-  // drawNextCell()
-
   let myCell = mouseOverCell();
   if (myCell != null) {
-    console.log(`Mouse is over cell (${myCell.row}, ${myCell.col})`);
-    console.log('myCell collapsed = ' + myCell.collapsed);
-    console.log('myCell options = ' + myCell.options);
-    console.log(myCell.options);
-    console.log('myCell row = ' + myCell.row)
+    if (myCell.collapsed) {
+      console.log("cell collapsed, tileNumber " + myCell.options)
+    }  else {
+      console.log("not collapsed, numOptions = " + myCell.options.length)
+      console.log(myCell.options);
+    }
   }
-
 }
 
 function rightMousePressed() {
-setupCells()
+ // setupCells()
 }
 
 
-
 function draw() {
-//  console.log("redraw")
   background(20,20,20);
+  redrawCollapsedCells(); // Call the new function to redraw collapsed cells
 
-
-  if (state = "running") {
-      pickNextCell()
-      drawNextCell()
+  if (state === "running" && progressFlag) { // Only progress if flag is set or state is running
+    pickNextCell();
+    drawNextCell();
+    progressFlag = false; // Reset flag
   }
   mouseOverCell()
 }
@@ -170,6 +188,29 @@ function mouseMoved() {
   // }
 }
 
+function redrawCollapsedCells() {
+  const w = width / DIM;
+  const h = height / DIM;
+  for (let row = 0; row < DIM; row++) {
+    for (let col = 0; col < DIM; col++) {
+      let rectX = col * w;
+      let rectY = row * h;
+      let cell = grid[col + row * DIM];
+      if (cell.collapsed) { 
+        // Only draw collapsed cells
+        let index = cell.options[0];
+        if (index !== undefined) {
+          image(tiles[index].img, rectX, rectY, w, h); // Draw the image of the collapsed tile
+        }
+      } else {
+        fill(0);
+        stroke(255);
+        rect(rectX, rectY, w, h)
+      }
+    }
+  }
+}
+
 
 function drawNextCell() {
   const w = width / DIM;
@@ -184,19 +225,16 @@ function drawNextCell() {
         let index = cell.options[0];
           if (index == undefined) {
             console.log("broken")
-            state = "stopped"
+            state = "running"
             console.log(state)
           } else {
             image(tiles[index].img, col * w, row * h, w, h);
           }
     //    debugger;
       } else {
-
         fill(0);
         stroke(255);
         rect(rectX, rectY, w, h)
-        
-
       }
 
     }
