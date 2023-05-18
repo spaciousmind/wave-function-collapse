@@ -7,12 +7,12 @@ let stepCount = 0; // Step counter
 
 let grid = [];
 const cellHistory = []; // Create an array to store the cell history
-const DIM = 10;
+const DIM = 4;
 
 function preload() {
   const path = "tiles/mytiles/"
   for (let i = 0; i < 24; i++) {
-    tileImages[i] = loadImage(`${path}${i}.jpg`);
+    tileImages[i] = loadImage( `${path}${i}.jpg`);
     console.log(`${path}${i}.jpg`)
   }
 }
@@ -113,7 +113,9 @@ function keyPressed() {
   if (keyCode === RIGHT_ARROW) {
     progressFlag = true; // Set flag to progress
     intervalId = setInterval(continueProgress, 100); // Call handleProgress() every 0.1 seconds
-
+  }
+  if (keyCode === 221) {
+    progressFlag = true; // Set flag to progress
   }
 }
 
@@ -264,17 +266,14 @@ function pickNextCell() {
   }
   
   if (stopIndex > 0) gridCopy.splice(stopIndex);
- // console.log(gridCopy)
-//  console.log ("gridcopy length " + gridCopy.length)
   const cell = random(gridCopy);
-//  console.log(cell.options)
-  cell.collapsed = true;
+  cell.step = stepCount++
+  console.log(stepCount)
+  cell.collapsed = true
   const pick = random(cell.options);
-   if (pick === undefined) {
+  if (pick === undefined) {
     console.log(`Cell ${cell} has no options available`);
-    
     noLoop()
-   // startOver();
     return;
   }
   cell.options = [pick];
