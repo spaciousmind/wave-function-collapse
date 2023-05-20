@@ -4,10 +4,18 @@ let myCell = "";
 let state = "paused"; // Set initial state to paused
 let progressFlag = false; // Flag to indicate whether to progress
 let stepCount = 0; // Step counter
+let textSizeFactor = 0.4; // Set the text size to 80% of the cell size
+let nextCell
+let halfRed, halfWhite, halfYellow
+
 
 let grid = [];
 const cellHistory = []; // Create an array to store the cell history
-const DIM = 4;
+const canvasSize = 1000;
+const DIM = 10;
+const cellSize = canvasSize / DIM
+
+
 
 function preload() {
   const path = "tiles/mytiles/"
@@ -18,11 +26,20 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(1000, 1000);
+  createCanvas(canvasSize, canvasSize);
+
+  halfRed = color(255, 0, 0, 128); // Set the color to half-red
+  halfWhite = color(255, 255, 255, 128); // Set the color to half-white
+  halfYellow = color(255, 255, 0, 128); // Set the color to half-yellow
+  randomSeed(10); // Set the seed value to 10
+
+  
+
+
 
   // add event listener for right click
   canvas.addEventListener("contextmenu", function(e) { e.preventDefault() }, false);
-  //randomSeed(10);
+
 
   // loaded and created the tiles
   tiles[0] = new Tile(tileImages[0], ['AAA', 'AAA', 'AAA', 'AAA']);
@@ -70,7 +87,7 @@ function setup() {
 function addTileRotations(){
   for (let i = 2; i < 24; i++) {
     for (let j = 1; j < 4; j++) {
-    tiles.push(tiles[i].rotate(j));
+      tiles.push(tiles[i].rotate(j));
     }
   }
 }
@@ -94,7 +111,6 @@ function checkValid(arr, valid) {
     //ARR: [BLANK, UP, RIGHT, DOWN, LEFT]
     //result in removing UP, DOWN, LEFT
     let element = arr[i];
- //   console.log(element);
     if (!valid.includes(element)){
       arr.splice(i, 1);
     }
@@ -110,6 +126,7 @@ function mousePressed() {
 }
 
 function keyPressed() {
+  if (state === "error") return
   if (keyCode === RIGHT_ARROW) {
     progressFlag = true; // Set flag to progress
     intervalId = setInterval(continueProgress, 100); // Call handleProgress() every 0.1 seconds
@@ -136,9 +153,9 @@ function leftMousePressed() {
   let myCell = mouseOverCell();
   if (myCell != null) {
     if (myCell.collapsed) {
-      console.log("cell collapsed, tileNumber " + myCell.options)
+      console.log("{" + myCell.col + "," + myCell.row + "} collapsed, tileNumber " + myCell.options)
     }  else {
-      console.log("not collapsed, numOptions = " + myCell.options.length)
+      console.log("{" + myCell.col + "," + myCell.row + "} not collapsed, numOptions = " + myCell.options.length)
       console.log(myCell.options);
     }
   }
@@ -156,90 +173,92 @@ function draw() {
 
   if (state === "running" && progressFlag) { // Only progress if flag is set or state is running
     pickNextCell();
+    highlightCell(nextCell.col, nextCell.row, halfYellow);
+    console.log(nextCell);
     drawNextCell();
     progressFlag = false; // Reset flag
   }
+  //highlightCell(nextCell.col, nextCell.row)
   mouseOverCell()
+
 }
 
 
 
 function mouseOverCell() {
-  const w = width / DIM;
-  const h = height / DIM;
   for (let row = 0; row < DIM; row++) {
     for (let col = 0; col < DIM; col++) {
-      let rectX = col * w;
-      let rectY = row * h;
+      let rectX = col * cellSize;
+      let rectY = row * cellSize;
       let cell = grid [col + row * DIM];
-      if (mouseX >= rectX && mouseX <= rectX + w && mouseY >= rectY && mouseY <= rectY + h) {
-        fill(255, 0, 0, 128);
-        rect(rectX, rectY, w, h);
-       // return {cell: cell, row: row, col: col}; // return the row and column of the cell
-       return cell; // return the entire cell object
-
+      if (mouseX >= rectX && mouseX <= rectX + cellSize && mouseY >= rectY && mouseY <= rectY + cellSize) {
+        highlightCell(col, row, halfYellow);
+        drawDebugText(col, row);
+        return cell; // return the entire cell object
       }
     }
   }
   return null; // if the mouse is not over any cell, return null
 }
 
+function drawDebugText(col, row) {
+  centerX = getRect(col) + cellSize / 2;
+  centerY = getRect(row) + cellSize / 2;
+  textSize(cellSize * textSizeFactor);
+  fill(255);
+  textAlign(CENTER, CENTER);
+  text(`(${col},${row})`, centerX , centerY);
+}
+
 function mouseMoved() {
-  // let myCell = mouseOverCell();
-  // if (myCell != null) {
-  //  // console.log(`Mouse is over cell (${myCell.row}, ${myCell.col})`);
-  // }
+//do nothing
 }
 
 function redrawCollapsedCells() {
-  const w = width / DIM;
-  const h = height / DIM;
   for (let row = 0; row < DIM; row++) {
     for (let col = 0; col < DIM; col++) {
-      let rectX = col * w;
-      let rectY = row * h;
       let cell = grid[col + row * DIM];
       if (cell.collapsed) { 
         // Only draw collapsed cells
         let index = cell.options[0];
         if (index !== undefined) {
-          image(tiles[index].img, rectX, rectY, w, h); // Draw the image of the collapsed tile
+          image(tiles[index].img, getRect(col), getRect(row), cellSize, cellSize); // Draw the image of the collapsed tile
+        } else {
+          highlightCell(cell.col, cell.row, halfRed);
         }
       } else {
         fill(0);
         stroke(255);
-        rect(rectX, rectY, w, h)
+        rect(getRect(col), getRect(row), cellSize, cellSize)
       }
     }
   }
 }
 
+function getRect(gridPos) {
+  //takes in column or row and returns the x or y position of the rectangle
+  return gridPos * cellSize;
+}
+
 
 function drawNextCell() {
-  const w = width / DIM;
-  const h = height / DIM;
   for (let row = 0; row < DIM; row++) {
     for (let col = 0; col < DIM; col++) {
       let cell = grid [col + row * DIM];
-      
-      let rectX = col * w
-      let rectY = row * h
+
       if (cell.collapsed) {
         let index = cell.options[0];
           if (index == undefined) {
-            console.log("broken")
-            state = "running"
-            console.log(state)
+            return
           } else {
-            image(tiles[index].img, col * w, row * h, w, h);
+            image(tiles[index].img, getRect(col), getRect(row), cellSize, cellSize);
           }
-    //    debugger;
       } else {
+        //draw blank squares
         fill(0);
         stroke(255);
-        rect(rectX, rectY, w, h)
+        rect(getRect(col), getRect(row), cellSize, cellSize)
       }
-
     }
   }
 }
@@ -267,19 +286,34 @@ function pickNextCell() {
   
   if (stopIndex > 0) gridCopy.splice(stopIndex);
   const cell = random(gridCopy);
+  nextCell = cell
+  // Get the x and y coordinates of the cell
+  // const rectX = cell.col * cellSize;
+  // const rectY = cell.row * cellSize;
+  //highlightCell(cell.col, cell.row, halfWhite);
+  console.log("Picked cell at " + cell.col + ", " + cell.row + " with " + cell.options.length + " options")
   cell.step = stepCount++
   console.log(stepCount)
   cell.collapsed = true
   const pick = random(cell.options);
-  if (pick === undefined) {
-    console.log(`Cell ${cell} has no options available`);
-    noLoop()
+
+  if (pick === undefined) { // If there are no options available, do something
+    console.log("cell at " + cell.col + ", " + cell.row + " has no options left");
+    state = "error"
     return;
   }
+
   cell.options = [pick];
 
   setupGrid()
 }
+
+function highlightCell(col, row, colour) {
+  fill(colour);
+  rect(getRect(col), getRect(row), cellSize, cellSize);
+}
+
+
 
 
 function setupGrid(){

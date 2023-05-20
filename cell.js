@@ -1,13 +1,8 @@
 class Cell {
-	constructor(numOptions, row, col) {
-		this.row = row
+	constructor(numOptions, col, row) {
 		this.col = col
-	//	this.step = stepCount++ // increment stepCount and assign to this cell
+		this.row = row
 		this.step = ""
-		// console.log (`Created cell at (${this.row}, ${this.col})`)
-		// console.log(this.step);
-	//	console.log("stepCount: " + stepCount)
-	
 		this.collapsed = false;
 		if (numOptions instanceof Array) {
 			this.options = numOptions;
