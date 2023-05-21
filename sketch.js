@@ -31,15 +31,10 @@ function setup() {
   halfRed = color(255, 0, 0, 128); // Set the color to half-red
   halfWhite = color(255, 255, 255, 128); // Set the color to half-white
   halfYellow = color(255, 255, 0, 128); // Set the color to half-yellow
-  randomSeed(10); // Set the seed value to 10
-
-  
-
-
+  // randomSeed(0); // Set the seed value
 
   // add event listener for right click
   canvas.addEventListener("contextmenu", function(e) { e.preventDefault() }, false);
-
 
   // loaded and created the tiles
   tiles[0] = new Tile(tileImages[0], ['AAA', 'AAA', 'AAA', 'AAA']);
@@ -53,7 +48,7 @@ function setup() {
   tiles[8] = new Tile(tileImages[8], ['BCB', 'BAB', 'BAB', 'BCB']);
   tiles[9] = new Tile(tileImages[9], ['BBB', 'BBA', 'AAA', 'ABB']);
   tiles[10] = new Tile(tileImages[10], ['BBB', 'BCA', 'ABB', 'BCB']);
-  tiles[11] = new Tile(tileImages[11], ['BCB', 'BBA', 'BCA', 'BBB']);
+  tiles[11] = new Tile(tileImages[11], ['BCB', 'BBA', 'ACB', 'BBB']);
   tiles[12] = new Tile(tileImages[12], ['BBB', 'BCB', 'BBB', 'BCB']);
   tiles[13] = new Tile(tileImages[13], ['BAB', 'BBB', 'BAB', 'BBB']);
   tiles[14] = new Tile(tileImages[14], ['BAB', 'BCB', 'BAB', 'BCB']);
@@ -68,8 +63,6 @@ function setup() {
   tiles[23] = new Tile(tileImages[23], ['BCB', 'BBA', 'ABB', 'BCB']);
 
   addTileRotations()
-  //console.log("tiles length = " + tiles.length)
-
 
   // generate the adjacency rules based on edges
   for (let i = 0; i < tiles.length; i ++) {
@@ -78,11 +71,38 @@ function setup() {
   }
 
   setupCells()
+  fillEdgesWithWater()
+  setupGrid()
   console.log("first setup cells")
-
 }
 
 
+function draw() {
+  background(20,20,20);
+  redrawCollapsedCells(); // Call the new function to redraw collapsed cells
+
+  if (state === "running" && progressFlag) { // Only progress if flag is set or state is running
+    pickNextCell();
+    highlightCell(nextCell.col, nextCell.row, halfWhite);
+
+    drawNextCell();
+    progressFlag = false; // Reset flag
+  }
+  mouseOverCell()
+}
+
+
+function fillEdgesWithWater(){
+  for (let i = 0; i < grid.length; i++) {
+    const cell = grid[i];
+    if (cell.col === 0 || cell.col === DIM - 1 || cell.row === 0 || cell.row === DIM - 1) {
+      cell.collapsed = true;
+      cell.options = [0];
+      cell.step = 0;
+    }
+  }
+  stepCount += 1;
+}
 
 function addTileRotations(){
   for (let i = 2; i < 24; i++) {
@@ -97,7 +117,7 @@ function setupCells() {
     for (let col = 0; col < DIM; col++) {
       let index = col + row * DIM;
       grid[index] = new Cell(tiles.length, col, row);
-      cellHistory.push({row: row, col: col}); // Add the cell's position to the cell history
+      cellHistory.push({col: col, row: row }); // Add the cell's position to the cell history
     }
   }
   state = "running"
@@ -129,7 +149,7 @@ function keyPressed() {
   if (state === "error") return
   if (keyCode === RIGHT_ARROW) {
     progressFlag = true; // Set flag to progress
-    intervalId = setInterval(continueProgress, 100); // Call handleProgress() every 0.1 seconds
+    intervalId = setInterval(continueProgress, 50); // Call handleProgress() every 0.1 seconds
   }
   if (keyCode === 221) {
     progressFlag = true; // Set flag to progress
@@ -152,12 +172,15 @@ function continueProgress() {
 function leftMousePressed() {
   let myCell = mouseOverCell();
   if (myCell != null) {
+  //  console.log(grid)
     if (myCell.collapsed) {
-      console.log("{" + myCell.col + "," + myCell.row + "} collapsed, tileNumber " + myCell.options)
+      console.log("{" + myCell.col + "," + myCell.row + "} collapsed, tileNumber " + myCell.options + ", numOptions = " + myCell.options.length)
     }  else {
-      console.log("{" + myCell.col + "," + myCell.row + "} not collapsed, numOptions = " + myCell.options.length)
-      console.log(myCell.options);
+     console.log("{" + myCell.col + "," + myCell.row + "} not collapsed, numOptions = " + myCell.options.length)
+
     }
+  //  console.log(grid)
+  //  console.log(myCell.options);
   }
 }
 
@@ -167,31 +190,15 @@ function rightMousePressed() {
 }
 
 
-function draw() {
-  background(20,20,20);
-  redrawCollapsedCells(); // Call the new function to redraw collapsed cells
 
-  if (state === "running" && progressFlag) { // Only progress if flag is set or state is running
-    pickNextCell();
-    highlightCell(nextCell.col, nextCell.row, halfYellow);
-    console.log(nextCell);
-    drawNextCell();
-    progressFlag = false; // Reset flag
-  }
-  //highlightCell(nextCell.col, nextCell.row)
-  mouseOverCell()
-
-}
 
 
 
 function mouseOverCell() {
   for (let row = 0; row < DIM; row++) {
     for (let col = 0; col < DIM; col++) {
-      let rectX = col * cellSize;
-      let rectY = row * cellSize;
       let cell = grid [col + row * DIM];
-      if (mouseX >= rectX && mouseX <= rectX + cellSize && mouseY >= rectY && mouseY <= rectY + cellSize) {
+      if (mouseX >= getRect(col) && mouseX <= getRect(col) + cellSize && mouseY >= getRect(row) && mouseY <= getRect(row) + cellSize) {
         highlightCell(col, row, halfYellow);
         drawDebugText(col, row);
         return cell; // return the entire cell object
@@ -267,6 +274,10 @@ function pickNextCell() {
    //pick cell with least entropy
   let gridCopy = grid.slice();
   gridCopy = gridCopy.filter((a) => !a.collapsed);
+  console.log("grid")
+  console.log(grid)
+  console.log("gridCopy")
+  console.log(gridCopy)
   if (gridCopy.length == 0) {
     return;
   }
@@ -287,18 +298,15 @@ function pickNextCell() {
   if (stopIndex > 0) gridCopy.splice(stopIndex);
   const cell = random(gridCopy);
   nextCell = cell
-  // Get the x and y coordinates of the cell
-  // const rectX = cell.col * cellSize;
-  // const rectY = cell.row * cellSize;
-  //highlightCell(cell.col, cell.row, halfWhite);
-  console.log("Picked cell at " + cell.col + ", " + cell.row + " with " + cell.options.length + " options")
+
+ // console.log("Picked cell at " + cell.col + ", " + cell.row + " with " + cell.options.length + " options")
   cell.step = stepCount++
   console.log(stepCount)
   cell.collapsed = true
   const pick = random(cell.options);
 
   if (pick === undefined) { // If there are no options available, do something
-    console.log("cell at " + cell.col + ", " + cell.row + " has no options left");
+   // console.log("cell at " + cell.col + ", " + cell.row + " has no options left");
     state = "error"
     return;
   }
@@ -317,64 +325,64 @@ function highlightCell(col, row, colour) {
 
 
 function setupGrid(){
-const nextGrid = [];
-// console.log(grid);
-for (let row = 0; row < DIM; row++) {
-  for (let col = 0; col < DIM; col++) {
-      let index = col + row * DIM;
-     if (grid[index].collapsed){
-       nextGrid[index] = grid[index];
-     } else {
-         let options = new Array(tiles.length).fill(0).map((x, col) => col);
-     //look up
-         if (row > 0) {
-           let up = grid[col + (row - 1) * DIM];
-           let validOptions = [];
-           for (let option of up.options) {
-             let valid = tiles[option].down;
-             validOptions = validOptions.concat(valid);
-           }
-           checkValid(options, validOptions);
-         }
-
-         //look right
-         if (col < DIM - 1) {
-           let right = grid[col + 1 + row * DIM];
-           let validOptions = [];
-           for (let option of right.options) {
-             let valid = tiles[option].left;
-             validOptions = validOptions.concat(valid);
-           }
-           checkValid(options, validOptions);
-         }
-
-         //look down
-         if (row < DIM - 1) {
-           let down = grid[col + (row + 1) * DIM];
-           let validOptions = [];
-           for (let option of down.options) {
-             let valid = tiles[option].up;
-             validOptions = validOptions.concat(valid);
-           }
+  const nextGrid = [];
+  // console.log(grid);
+  for (let row = 0; row < DIM; row++) {
+    for (let col = 0; col < DIM; col++) {
+        let index = col + row * DIM;
+      if (grid[index].collapsed){
+        nextGrid[index] = grid[index];
+      } else {
+          let options = new Array(tiles.length).fill(0).map((x, col) => col);
+      //look up
+          if (row > 0) {
+            let up = grid[col + (row - 1) * DIM];
+            let validOptions = [];
+            for (let option of up.options) {
+              let valid = tiles[option].down;
+              validOptions = validOptions.concat(valid);
+            }
             checkValid(options, validOptions);
-         }
+          }
 
-         //look left
-         if (col > 0) {
-           let left = grid[col - 1 + row * DIM];
-           let validOptions = [];
-           for (let option of left.options) {
-             let valid = tiles[option].right;
-             validOptions = validOptions.concat(valid);
-           }
-           checkValid(options, validOptions);
-         }
+          //look right
+          if (col < DIM - 1) {
+            let right = grid[col + 1 + row * DIM];
+            let validOptions = [];
+            for (let option of right.options) {
+              let valid = tiles[option].left;
+              validOptions = validOptions.concat(valid);
+            }
+            checkValid(options, validOptions);
+          }
 
-         //I could immediately collapse if only one option
-         nextGrid[index] = new Cell(options, row, col);
-       }
-     }
-   }
- grid = nextGrid; 
-}
+          //look down
+          if (row < DIM - 1) {
+            let down = grid[col + (row + 1) * DIM];
+            let validOptions = [];
+            for (let option of down.options) {
+              let valid = tiles[option].up;
+              validOptions = validOptions.concat(valid);
+            }
+              checkValid(options, validOptions);
+          }
+
+          //look left
+          if (col > 0) {
+            let left = grid[col - 1 + row * DIM];
+            let validOptions = [];
+            for (let option of left.options) {
+              let valid = tiles[option].right;
+              validOptions = validOptions.concat(valid);
+            }
+            checkValid(options, validOptions);
+          }
+
+          //I could immediately collapse if only one option
+          nextGrid[index] = new Cell(options, col, row);
+        }
+      }
+    }
+    grid = nextGrid; 
+  }
 
