@@ -5,8 +5,11 @@ let state = "paused"; // Set initial state to paused
 let progressFlag = false; // Flag to indicate whether to progress
 let stepCount = 0; // Step counter
 let textSizeFactor = 0.4; // Set the text size to 80% of the cell size
-let nextCell
+let nextCell = null
 let halfRed, halfWhite, halfYellow
+let whiteSquare = false
+let intervalRunning = false;
+
 
 
 let grid = [];
@@ -15,8 +18,6 @@ const canvasSize = 1000;
 const DIM = 10;
 const cellSize = canvasSize / DIM
 
-
-
 function preload() {
   const path = "tiles/mytiles/"
   for (let i = 0; i < 24; i++) {
@@ -24,6 +25,10 @@ function preload() {
     console.log(`${path}${i}.jpg`)
   }
 }
+
+
+
+//#region SETUP_FUNCTIONS
 
 function setup() {
   createCanvas(canvasSize, canvasSize);
@@ -76,22 +81,6 @@ function setup() {
   console.log("first setup cells")
 }
 
-
-function draw() {
-  background(20,20,20);
-  redrawCollapsedCells(); // Call the new function to redraw collapsed cells
-
-  if (state === "running" && progressFlag) { // Only progress if flag is set or state is running
-    pickNextCell();
-    highlightCell(nextCell.col, nextCell.row, halfWhite);
-
-    drawNextCell();
-    progressFlag = false; // Reset flag
-  }
-  mouseOverCell()
-}
-
-
 function fillEdgesWithWater(){
   for (let i = 0; i < grid.length; i++) {
     const cell = grid[i];
@@ -123,17 +112,54 @@ function setupCells() {
   state = "running"
 }
 
+//#endregion
 
-function checkValid(arr, valid) {
-  for (let i = arr.length - 1; i >= 0; i--) {
 
-    //VALID: [BLANK, RIGHT]
-    //ARR: [BLANK, UP, RIGHT, DOWN, LEFT]
-    //result in removing UP, DOWN, LEFT
-    let element = arr[i];
-    if (!valid.includes(element)){
-      arr.splice(i, 1);
+
+//#region USER_INPUTS
+function keyPressed() {
+  if (state === "error") return
+  if (keyCode === RIGHT_ARROW) {
+    if (nextCell === null) {
+    //  progressFlag = true; // Set flag to progress
+    //  intervalId = setInterval(drawWhiteSquare, 50); // Call handleProgress() every 0.1 seconds
     }
+  }
+  if (keyCode === 221) {
+    if (nextCell === null) {
+      progressFlag = true; // Set flag to progress
+      setupNextCell()
+    }
+  }
+}
+
+function setupNextCell() {
+  intervalRunning = true
+  nextCell = pickNextCell();
+  console.log("nextCell = " + nextCell.col + "," + nextCell.row);
+  intervalId = setInterval(continueProgress, 1000); // Call handleProgress() every 0.1 seconds
+  progressFlag = false;
+  chosenNextCell = true
+}
+
+function continueProgress() {
+  //progressFlag = true; // Set flag to progress
+  console.log("continueProgress() called")
+//  if (progressFlag === true) {
+    collapseNextCell(nextCell)
+    setupGrid()
+    drawNextCell();
+ // }
+  nextCell = null
+  testFlag = false
+  clearInterval(intervalId); // Stop calling handleProgress()
+}
+
+
+function keyReleased() {
+  if (keyCode === RIGHT_ARROW) {
+    progressFlag = false; // Clear flag to progress
+    clearInterval(intervalId); // Stop calling handleProgress()
   }
 }
 
@@ -145,54 +171,22 @@ function mousePressed() {
   }
 }
 
-function keyPressed() {
-  if (state === "error") return
-  if (keyCode === RIGHT_ARROW) {
-    progressFlag = true; // Set flag to progress
-    intervalId = setInterval(continueProgress, 50); // Call handleProgress() every 0.1 seconds
-  }
-  if (keyCode === 221) {
-    progressFlag = true; // Set flag to progress
-  }
-}
-
-function keyReleased() {
-  if (keyCode === RIGHT_ARROW) {
-    progressFlag = false; // Clear flag to progress
-    clearInterval(intervalId); // Stop calling handleProgress()
-  }
-}
-
-
-function continueProgress() {
-  progressFlag = true;
-}
-
-
 function leftMousePressed() {
   let myCell = mouseOverCell();
   if (myCell != null) {
-  //  console.log(grid)
     if (myCell.collapsed) {
       console.log("{" + myCell.col + "," + myCell.row + "} collapsed, tileNumber " + myCell.options + ", numOptions = " + myCell.options.length)
     }  else {
      console.log("{" + myCell.col + "," + myCell.row + "} not collapsed, numOptions = " + myCell.options.length)
-
     }
-  //  console.log(grid)
-  //  console.log(myCell.options);
   }
 }
 
 function rightMousePressed() {
- // setupCells()
- console.log(cellHistory)
+  whiteSquare = true;
+  console.log(nextCell)
+  console.log(mouseOverCell().options)
 }
-
-
-
-
-
 
 function mouseOverCell() {
   for (let row = 0; row < DIM; row++) {
@@ -208,6 +202,17 @@ function mouseOverCell() {
   return null; // if the mouse is not over any cell, return null
 }
 
+function mouseMoved() {
+  //do nothing
+}
+
+
+function stopInterval() {
+  clearInterval();
+  intervalRunning = false;
+}
+
+  
 function drawDebugText(col, row) {
   centerX = getRect(col) + cellSize / 2;
   centerY = getRect(row) + cellSize / 2;
@@ -216,9 +221,29 @@ function drawDebugText(col, row) {
   textAlign(CENTER, CENTER);
   text(`(${col},${row})`, centerX , centerY);
 }
+//#endregion
 
-function mouseMoved() {
-//do nothing
+
+function draw() {
+  background(20,20,20);
+  redrawCollapsedCells(); // Call the new function to redraw collapsed cells
+  if (nextCell != null) {
+    highlightCell(nextCell.col, nextCell.row, halfWhite);
+  }
+  mouseOverCell()
+}
+
+
+function checkValid(arr, valid) {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    //VALID: [BLANK, RIGHT]
+    //ARR: [BLANK, UP, RIGHT, DOWN, LEFT]
+    //result in removing UP, DOWN, LEFT
+    let element = arr[i];
+    if (!valid.includes(element)){
+      arr.splice(i, 1);
+    }
+  }
 }
 
 function redrawCollapsedCells() {
@@ -247,6 +272,10 @@ function getRect(gridPos) {
   return gridPos * cellSize;
 }
 
+function highlightCell(col, row, colour) {
+  fill(colour);
+  rect(getRect(col), getRect(row), cellSize, cellSize);
+}
 
 function drawNextCell() {
   for (let row = 0; row < DIM; row++) {
@@ -271,13 +300,10 @@ function drawNextCell() {
 }
 
 function pickNextCell() {
-   //pick cell with least entropy
+  //pick cell with least entropy
+  //make a copy of the grid and filter it so that it only contains uncollapsed cells
   let gridCopy = grid.slice();
   gridCopy = gridCopy.filter((a) => !a.collapsed);
-  console.log("grid")
-  console.log(grid)
-  console.log("gridCopy")
-  console.log(gridCopy)
   if (gridCopy.length == 0) {
     return;
   }
@@ -296,32 +322,23 @@ function pickNextCell() {
   }
   
   if (stopIndex > 0) gridCopy.splice(stopIndex);
-  const cell = random(gridCopy);
-  nextCell = cell
+  const nextCell = random(gridCopy);
 
- // console.log("Picked cell at " + cell.col + ", " + cell.row + " with " + cell.options.length + " options")
+  return nextCell
+}
+
+function collapseNextCell(cell) {
+  console.log("Picked cell at " + cell.col + ", " + cell.row + " with " + cell.options.length + " options")
   cell.step = stepCount++
   console.log(stepCount)
   cell.collapsed = true
   const pick = random(cell.options);
-
   if (pick === undefined) { // If there are no options available, do something
-   // console.log("cell at " + cell.col + ", " + cell.row + " has no options left");
     state = "error"
     return;
   }
-
   cell.options = [pick];
-
-  setupGrid()
 }
-
-function highlightCell(col, row, colour) {
-  fill(colour);
-  rect(getRect(col), getRect(row), cellSize, cellSize);
-}
-
-
 
 
 function setupGrid(){
@@ -383,6 +400,7 @@ function setupGrid(){
         }
       }
     }
-    grid = nextGrid; 
-  }
+  grid = nextGrid; 
+}
+
 
