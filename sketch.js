@@ -7,8 +7,7 @@ let stepCount = 0; // Step counter
 let textSizeFactor = 0.4; // Set the text size to 80% of the cell size
 let nextCell = null
 let halfRed, halfWhite, halfYellow
-let whiteSquare = false
-let intervalRunning = false;
+
 
 
 
@@ -78,7 +77,11 @@ function setup() {
   setupCells()
   fillEdgesWithWater()
   setupGrid()
+  stepCount += 1;
+  console.log("step: " + stepCount)
   console.log("first setup cells")
+  console.log("--------------")
+  nextCell = findNextCell()
 }
 
 function fillEdgesWithWater(){
@@ -90,7 +93,6 @@ function fillEdgesWithWater(){
       cell.step = 0;
     }
   }
-  stepCount += 1;
 }
 
 function addTileRotations(){
@@ -119,46 +121,37 @@ function setupCells() {
 //#region USER_INPUTS
 function keyPressed() {
   if (state === "error") return
-  if (keyCode === RIGHT_ARROW) {
-    if (nextCell === null) {
-    //  progressFlag = true; // Set flag to progress
-    //  intervalId = setInterval(drawWhiteSquare, 50); // Call handleProgress() every 0.1 seconds
+  // if (keyCode === RIGHT_ARROW) {
+  //   if (nextCell != null) {
+  //     intervalId = setInterval(drawCell(nextCell), 50); // Call handleProgress() every 0.1 seconds
+  //   }
+  // }
+  if (keyCode === 219) { // "[" key
+    if (cellHistory.length > 0) {
+      let lastCell = cellHistory.pop()
+      let cell = grid[lastCell.col + lastCell.row * DIM]
+      cell.collapsed = false;
+      cell.options = tiles.length;
+      cell.step = 0;
+      setupGrid()
     }
-  }
-  if (keyCode === 221) {
-    if (nextCell === null) {
-      progressFlag = true; // Set flag to progress
-      setupNextCell()
+  } else if (keyCode === 221) { // "]" key
+    if (nextCell != null) {
+      nextCell = drawCell(nextCell)
     }
   }
 }
 
-function setupNextCell() {
-  intervalRunning = true
-  nextCell = pickNextCell();
-  console.log("nextCell = " + nextCell.col + "," + nextCell.row);
-  intervalId = setInterval(continueProgress, 1000); // Call handleProgress() every 0.1 seconds
-  progressFlag = false;
-  chosenNextCell = true
-}
-
-function continueProgress() {
-  //progressFlag = true; // Set flag to progress
-  console.log("continueProgress() called")
-//  if (progressFlag === true) {
+function drawCell(nextCell) {
     collapseNextCell(nextCell)
     setupGrid()
-    drawNextCell();
- // }
-  nextCell = null
-  testFlag = false
-  clearInterval(intervalId); // Stop calling handleProgress()
+    drawNextCell(nextCell);
+    return findNextCell();
 }
 
 
 function keyReleased() {
   if (keyCode === RIGHT_ARROW) {
-    progressFlag = false; // Clear flag to progress
     clearInterval(intervalId); // Stop calling handleProgress()
   }
 }
@@ -174,11 +167,15 @@ function mousePressed() {
 function leftMousePressed() {
   let myCell = mouseOverCell();
   if (myCell != null) {
+    console.log("------------------")
     if (myCell.collapsed) {
       console.log("{" + myCell.col + "," + myCell.row + "} collapsed, tileNumber " + myCell.options + ", numOptions = " + myCell.options.length)
     }  else {
      console.log("{" + myCell.col + "," + myCell.row + "} not collapsed, numOptions = " + myCell.options.length)
+      console.log("options...")
+      console.log(myCell.options)
     }
+    console.log("------------------")
   }
 }
 
@@ -207,11 +204,6 @@ function mouseMoved() {
 }
 
 
-function stopInterval() {
-  clearInterval();
-  intervalRunning = false;
-}
-
   
 function drawDebugText(col, row) {
   centerX = getRect(col) + cellSize / 2;
@@ -231,8 +223,17 @@ function draw() {
     highlightCell(nextCell.col, nextCell.row, halfWhite);
   }
   mouseOverCell()
+  nextCellDebugText()
 }
 
+nextCellDebugText = () => {
+  if (nextCell != null) {
+    textSize(25);
+    fill(255);
+    textAlign(CENTER, CENTER);
+    text(`(${nextCell.col},${nextCell.row})`, getRect(nextCell.col) + cellSize / 2, getRect(nextCell.row) + cellSize / 2);
+  }
+}
 
 function checkValid(arr, valid) {
   for (let i = arr.length - 1; i >= 0; i--) {
@@ -299,7 +300,7 @@ function drawNextCell() {
   }
 }
 
-function pickNextCell() {
+function findNextCell() {
   //pick cell with least entropy
   //make a copy of the grid and filter it so that it only contains uncollapsed cells
   let gridCopy = grid.slice();
@@ -324,19 +325,21 @@ function pickNextCell() {
   if (stopIndex > 0) gridCopy.splice(stopIndex);
   const nextCell = random(gridCopy);
 
+  console.log("findNextCell() found cell at {" + nextCell.col + "," + nextCell.row + "}, it has " + nextCell.options.length + " options")
+  console.log("----------------------")
   return nextCell
 }
 
 function collapseNextCell(cell) {
-  console.log("Picked cell at " + cell.col + ", " + cell.row + " with " + cell.options.length + " options")
   cell.step = stepCount++
-  console.log(stepCount)
   cell.collapsed = true
   const pick = random(cell.options);
   if (pick === undefined) { // If there are no options available, do something
     state = "error"
     return;
   }
+  console.log("step " + stepCount)
+  console.log("collapsed cell at {" + cell.col + "," + cell.row + "} into " + pick + " it had " + cell.options.length + " options")
   cell.options = [pick];
 }
 
@@ -400,7 +403,7 @@ function setupGrid(){
         }
       }
     }
-  grid = nextGrid; 
+    grid = nextGrid; 
 }
 
 
