@@ -126,15 +126,20 @@ function keyPressed() {
     if (cellHistory.length > 0) {
       let lastCell = cellHistory.pop();
       nextCell = unDrawCell(lastCell);
+      console.log (cellHistory.length)
       intervalId = setInterval(function() {
+        let lastCell = cellHistory.pop();
         nextCell = unDrawCell(lastCell);
-      }, 500);
+        console.log (cellHistory.length)
+      }, 50);
     }
   } else if (keyCode === RIGHT_ARROW) { // Right arrow key
     if (nextCell != null) {
       nextCell = drawCell(nextCell);
+      console.log (cellHistory.length)
       intervalId = setInterval(function() {
         nextCell = drawCell(nextCell);
+        console.log (cellHistory.length)
       }, 50);
     }
   
@@ -142,6 +147,7 @@ function keyPressed() {
     if (cellHistory.length > 0) {
       let lastCell = cellHistory.pop();
       nextCell = unDrawCell(lastCell)
+      console.log (cellHistory.length)
     }
   } else if (keyCode === 221) { // "]" key
     if (nextCell != null) {
@@ -167,6 +173,9 @@ function drawCell(nextCell) {
 
 
 function keyReleased() {
+  if (keyCode === LEFT_ARROW || keyCode === RIGHT_ARROW) {
+    clearInterval(intervalId);
+  }
   if (keyCode === RIGHT_ARROW) {
     clearInterval(intervalId); // Stop calling handleProgress()
   }
@@ -340,9 +349,6 @@ function findNextCell() {
   
   if (stopIndex > 0) gridCopy.splice(stopIndex);
   const nextCell = random(gridCopy);
-
-  console.log("findNextCell() found cell at {" + nextCell.col + "," + nextCell.row + "}, it has " + nextCell.options.length + " options")
-  console.log("----------------------")
   return nextCell
 }
 
