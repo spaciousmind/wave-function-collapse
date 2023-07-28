@@ -77,7 +77,7 @@ function setup() {
   setupCells()
   fillEdgesWithWater()
   setupGrid()
-  stepCount += 1;
+  //stepCount += 1;
   console.log("step: " + stepCount)
   console.log("first setup cells")
   console.log("--------------")
@@ -108,7 +108,7 @@ function setupCells() {
     for (let col = 0; col < DIM; col++) {
       let index = col + row * DIM;
       grid[index] = new Cell(tiles.length, col, row);
-      cellHistory.push({col: col, row: row }); // Add the cell's position to the cell history
+    //cellHistory.push({col: col, row: row }); // Add the cell's position to the cell history
     }
   }
   state = "running"
@@ -121,32 +121,48 @@ function setupCells() {
 //#region USER_INPUTS
 function keyPressed() {
   if (state === "error") return
-  // if (keyCode === RIGHT_ARROW) {
-  //   if (nextCell != null) {
-  //     intervalId = setInterval(drawCell(nextCell), 50); // Call handleProgress() every 0.1 seconds
-  //   }
-  // }
-  if (keyCode === 219) { // "[" key
+
+  if (keyCode === LEFT_ARROW) { // Left arrow key
     if (cellHistory.length > 0) {
-      let lastCell = cellHistory.pop()
-      let cell = grid[lastCell.col + lastCell.row * DIM]
-      cell.collapsed = false;
-      cell.options = tiles.length;
-      cell.step = 0;
-      setupGrid()
+      let lastCell = cellHistory.pop();
+      nextCell = unDrawCell(lastCell);
+      intervalId = setInterval(function() {
+        nextCell = unDrawCell(lastCell);
+      }, 500);
+    }
+  } else if (keyCode === RIGHT_ARROW) { // Right arrow key
+    if (nextCell != null) {
+      nextCell = drawCell(nextCell);
+      intervalId = setInterval(function() {
+        nextCell = drawCell(nextCell);
+      }, 50);
+    }
+  
+  } else if (keyCode === 219) { // "[" key
+    if (cellHistory.length > 0) {
+      let lastCell = cellHistory.pop();
+      nextCell = unDrawCell(lastCell)
     }
   } else if (keyCode === 221) { // "]" key
     if (nextCell != null) {
       nextCell = drawCell(nextCell)
+      console.log (cellHistory.length)
     }
   }
 }
 
+function unDrawCell(lastCell) {
+  unCollapseCell(lastCell)
+  setupGrid()
+ // unDrawLastCell(lastCell);
+  return findNextCell();
+}
+
 function drawCell(nextCell) {
-    collapseNextCell(nextCell)
-    setupGrid()
-    drawNextCell(nextCell);
-    return findNextCell();
+  collapseNextCell(nextCell)
+  setupGrid()
+  drawNextCell(nextCell);
+  return findNextCell();
 }
 
 
@@ -332,17 +348,29 @@ function findNextCell() {
 
 function collapseNextCell(cell) {
   cell.step = stepCount++
+  cellHistory.push(cell)
   cell.collapsed = true
   const pick = random(cell.options);
   if (pick === undefined) { // If there are no options available, do something
     state = "error"
     return;
   }
-  console.log("step " + stepCount)
-  console.log("collapsed cell at {" + cell.col + "," + cell.row + "} into " + pick + " it had " + cell.options.length + " options")
   cell.options = [pick];
 }
 
+function unCollapseCell(cell) {
+  stepCount -= 1;
+  cell.collapsed = false;
+  const pick = random(cell.options);
+
+  if (pick === undefined) { // If there are no options available, do something
+    state = "error"
+    return;
+  }
+  
+  cell.options = [pick];
+ // cell.options = new Array(tiles.length).fill(0).map((x, i) => i);
+}
 
 function setupGrid(){
   const nextGrid = [];
