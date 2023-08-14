@@ -35,7 +35,7 @@ function setup() {
   halfRed = color(255, 0, 0, 128); // Set the color to half-red
   halfWhite = color(255, 255, 255, 128); // Set the color to half-white
   halfYellow = color(255, 255, 0, 128); // Set the color to half-yellow
-  // randomSeed(0); // Set the seed value
+  randomSeed(65); // Set the seed value
 
   // add event listener for right click
   canvas.addEventListener("contextmenu", function(e) { e.preventDefault() }, false);
@@ -243,7 +243,9 @@ function drawDebugText(col, row) {
 
 function draw() {
   background(20,20,20);
-  redrawCollapsedCells(); // Call the new function to redraw collapsed cells
+  if (state != "error") {
+    redrawCollapsedCells(); // Call the new function to redraw collapsed cells
+  }
   if (nextCell != null) {
     highlightCell(nextCell.col, nextCell.row, halfWhite);
   }
@@ -283,6 +285,7 @@ function redrawCollapsedCells() {
           image(tiles[index].img, getRect(col), getRect(row), cellSize, cellSize); // Draw the image of the collapsed tile
         } else {
           highlightCell(cell.col, cell.row, halfRed);
+          console.log("RED CELL")
         }
       } else {
         fill(0);
