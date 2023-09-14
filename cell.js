@@ -3,7 +3,7 @@ class Cell {
 		this.col = col
 		this.row = row
 		this.step = ""
-		this.collapsed = false;
+		this.state = "uncertain";
 		if (numOptions instanceof Array) {
 			this.options = numOptions;
 		} else {

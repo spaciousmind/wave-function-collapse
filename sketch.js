@@ -14,7 +14,7 @@ let halfRed, halfWhite, halfYellow
 let grid = [];
 const cellHistory = []; // Create an array to store the cell history
 const canvasSize = 1000;
-const DIM = 10;
+const DIM = 6;
 const cellSize = canvasSize / DIM
 
 function preload() {
@@ -35,7 +35,14 @@ function setup() {
   halfRed = color(255, 0, 0, 128); // Set the color to half-red
   halfWhite = color(255, 255, 255, 128); // Set the color to half-white
   halfYellow = color(255, 255, 0, 128); // Set the color to half-yellow
-  randomSeed(65); // Set the seed value
+ 
+
+
+  //let currentSeed = floor(random(1, 999)); // Set the seed value
+  
+  let currentSeed = 846;
+  randomSeed(currentSeed); // Set the seed value
+  console.log("currentSeed = " + currentSeed);
 
   // add event listener for right click
   canvas.addEventListener("contextmenu", function(e) { e.preventDefault() }, false);
@@ -81,14 +88,17 @@ function setup() {
   console.log("step: " + stepCount)
   console.log("first setup cells")
   console.log("--------------")
+  console.log(nextCell)
   nextCell = findNextCell()
+  console.log(nextCell)
 }
+
 
 function fillEdgesWithWater(){
   for (let i = 0; i < grid.length; i++) {
     const cell = grid[i];
     if (cell.col === 0 || cell.col === DIM - 1 || cell.row === 0 || cell.row === DIM - 1) {
-      cell.collapsed = true;
+      cell.state = "collapsed";
       cell.options = [0];
       cell.step = 0;
     }
@@ -111,7 +121,8 @@ function setupCells() {
     //cellHistory.push({col: col, row: row }); // Add the cell's position to the cell history
     }
   }
-  state = "running"
+  // state == "running"
+  // console.log(state)
 }
 
 //#endregion
@@ -120,7 +131,7 @@ function setupCells() {
 
 //#region USER_INPUTS
 function keyPressed() {
-  if (state === "error") return
+ // if (state === "error") return
 
   if (keyCode === LEFT_ARROW) { // Left arrow key
     if (cellHistory.length > 0) {
@@ -144,12 +155,16 @@ function keyPressed() {
     }
   
   } else if (keyCode === 219) { // "[" key
+    console.log(state)
     if (cellHistory.length > 0) {
       let lastCell = cellHistory.pop();
       nextCell = unDrawCell(lastCell)
       console.log (cellHistory.length)
+      state = "paused"
+      console.log (state)
     }
   } else if (keyCode === 221) { // "]" key
+    console.log(state)
     if (nextCell != null) {
       nextCell = drawCell(nextCell)
       console.log (cellHistory.length)
@@ -168,7 +183,9 @@ function drawCell(nextCell) {
   collapseNextCell(nextCell)
   setupGrid()
   drawNextCell(nextCell);
-  return findNextCell();
+  if (state != "error") {
+    return findNextCell();
+  }
 }
 
 
@@ -193,13 +210,14 @@ function leftMousePressed() {
   let myCell = mouseOverCell();
   if (myCell != null) {
     console.log("------------------")
-    if (myCell.collapsed) {
+    if (myCell.state === "collapsed") {
       console.log("{" + myCell.col + "," + myCell.row + "} collapsed, tileNumber " + myCell.options + ", numOptions = " + myCell.options.length)
     }  else {
-     console.log("{" + myCell.col + "," + myCell.row + "} not collapsed, numOptions = " + myCell.options.length)
+      console.log("{" + myCell.col + "," + myCell.row + "} not collapsed, numOptions = " + myCell.options.length)
       console.log("options...")
       console.log(myCell.options)
     }
+    console.log(myCell)
     console.log("------------------")
   }
 }
@@ -243,14 +261,43 @@ function drawDebugText(col, row) {
 
 function draw() {
   background(20,20,20);
-  if (state != "error") {
+  //if (state != "error") {
     redrawCollapsedCells(); // Call the new function to redraw collapsed cells
-  }
+  //}
   if (nextCell != null) {
     highlightCell(nextCell.col, nextCell.row, halfWhite);
   }
   mouseOverCell()
   nextCellDebugText()
+  allCellsDebugText()
+}
+
+function allCellsDebugText(){
+  for (let row = 0; row < DIM; row++) {
+    for (let col = 0; col < DIM; col++) {
+      let cell = grid [col + row * DIM];
+     // if (cell.state === "collapsed") {
+        let index = cell.options[0];
+        if (index == undefined) {
+          return
+        } else {
+          textSize(15);
+          noStroke(); // Disable the stroke
+          fill(255);
+          textAlign(LEFT, TOP);
+          text(
+            ` grid pos xy: (${cell.row},${cell.col})\n` +
+            ` step: ${cell.step}\n` +
+            ` state: ${cell.state}\n` +
+            ` length of options: ${cell.options.length}\n`
+           // ` options: ${cell.options}`
+            , // Text to be drawn
+            getRect(cell.col), // X coordinate of the text
+            getRect(cell.row) // Y coordinate of the text
+          );      }
+      //}
+    }
+  }
 }
 
 nextCellDebugText = () => {
@@ -278,14 +325,14 @@ function redrawCollapsedCells() {
   for (let row = 0; row < DIM; row++) {
     for (let col = 0; col < DIM; col++) {
       let cell = grid[col + row * DIM];
-      if (cell.collapsed) { 
+      if (cell.state === "collapsed") { 
         // Only draw collapsed cells
         let index = cell.options[0];
         if (index !== undefined) {
           image(tiles[index].img, getRect(col), getRect(row), cellSize, cellSize); // Draw the image of the collapsed tile
         } else {
           highlightCell(cell.col, cell.row, halfRed);
-          console.log("RED CELL")
+          //console.log("RED CELL")
         }
       } else {
         fill(0);
@@ -311,7 +358,7 @@ function drawNextCell() {
     for (let col = 0; col < DIM; col++) {
       let cell = grid [col + row * DIM];
 
-      if (cell.collapsed) {
+      if (cell.state === "collapsed") {
         let index = cell.options[0];
           if (index == undefined) {
             return
@@ -332,9 +379,9 @@ function findNextCell() {
   //pick cell with least entropy
   //make a copy of the grid and filter it so that it only contains uncollapsed cells
   let gridCopy = grid.slice();
-  gridCopy = gridCopy.filter((a) => !a.collapsed);
+  gridCopy = gridCopy.filter((a) => a.state === "uncertain");
   if (gridCopy.length == 0) {
-    return;
+    return "FUCKEDIT";
   }
 
   gridCopy.sort((a, b) => {
@@ -358,18 +405,22 @@ function findNextCell() {
 function collapseNextCell(cell) {
   cell.step = stepCount++
   cellHistory.push(cell)
-  cell.collapsed = true
+  cell.state = "collapsed"
   const pick = random(cell.options);
   if (pick === undefined) { // If there are no options available, do something
     state = "error"
+    console.log("ERROR")
+    console.log(cell)
     return;
+  } else {
+    
   }
   cell.options = [pick];
 }
 
 function unCollapseCell(cell) {
   stepCount -= 1;
-  cell.collapsed = false;
+  cell.state === "uncertain";
   const pick = random(cell.options);
 
   if (pick === undefined) { // If there are no options available, do something
@@ -387,7 +438,7 @@ function setupGrid(){
   for (let row = 0; row < DIM; row++) {
     for (let col = 0; col < DIM; col++) {
         let index = col + row * DIM;
-      if (grid[index].collapsed){
+      if (grid[index].state === "collapsed"){
         nextGrid[index] = grid[index];
       } else {
           let options = new Array(tiles.length).fill(0).map((x, col) => col);
