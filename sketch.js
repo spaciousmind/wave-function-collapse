@@ -1,7 +1,7 @@
 const tiles = [];
 const tileImages = [];
 let myCell = "";
-let state = "paused"; // Set initial state to paused
+let gameState = "paused"; // Set initial state to paused
 let progressFlag = false; // Flag to indicate whether to progress
 let stepCount = 0; // Step counter
 let textSizeFactor = 0.4; // Set the text size to 80% of the cell size
@@ -30,8 +30,8 @@ function preload() {
 //#region SETUP_FUNCTIONS
 
 function setup() {
-  createCanvas(canvasSize, canvasSize);
-
+  myCanvas = createCanvas(canvasSize, canvasSize);
+  createUIButtons(myCanvas)
   halfRed = color(255, 0, 0, 128); // Set the color to half-red
   halfWhite = color(255, 255, 255, 128); // Set the color to half-white
   halfYellow = color(255, 255, 0, 128); // Set the color to half-yellow
@@ -88,9 +88,12 @@ function setup() {
   console.log("step: " + stepCount)
   console.log("first setup cells")
   console.log("--------------")
-  console.log(nextCell)
+//  console.log(nextCell)
   nextCell = findNextCell()
-  console.log(nextCell)
+  for (let i = 0; i < 12; i++) {
+    advanceOneStep()
+  }
+  // console.log(nextCell)
 }
 
 
@@ -130,45 +133,53 @@ function setupCells() {
 
 
 //#region USER_INPUTS
-function keyPressed() {
- // if (state === "error") return
+function fastForward() {
+  if (nextCell != null) {
+    nextCell = drawCell(nextCell);
+   // console.log(cellHistory.length);
+    intervalId = setInterval(function() {
+      nextCell = drawCell(nextCell);
+     // console.log(cellHistory.length);
+    }, 50);
+  }
+}
 
-  if (keyCode === LEFT_ARROW) { // Left arrow key
-    if (cellHistory.length > 0) {
+function goBackOneStep() {
+  if (cellHistory.length > 0) {
+    let lastCell = cellHistory.pop();
+    nextCell = unDrawCell(lastCell);
+   // console.log(cellHistory.length);
+    intervalId = setInterval(function() {
       let lastCell = cellHistory.pop();
       nextCell = unDrawCell(lastCell);
-      console.log (cellHistory.length)
-      intervalId = setInterval(function() {
-        let lastCell = cellHistory.pop();
-        nextCell = unDrawCell(lastCell);
-        console.log (cellHistory.length)
-      }, 50);
-    }
+     // console.log(cellHistory.length);
+    }, 50);
+  }
+}
+
+
+
+function rewind() {
+  if (cellHistory.length > 0) {
+    let lastCell = cellHistory.pop();
+    nextCell = unDrawCell(lastCell);
+    console.log(cellHistory.length);
+    gameState = "paused";
+    console.log(state);
+  }
+}
+
+function keyPressed() {
+  // if (state === "error") return
+
+  if (keyCode === LEFT_ARROW) { // Left arrow key
+    rewind();
   } else if (keyCode === RIGHT_ARROW) { // Right arrow key
-    if (nextCell != null) {
-      nextCell = drawCell(nextCell);
-      console.log (cellHistory.length)
-      intervalId = setInterval(function() {
-        nextCell = drawCell(nextCell);
-        console.log (cellHistory.length)
-      }, 50);
-    }
-  
+    fastForward();
   } else if (keyCode === 219) { // "[" key
-    console.log(state)
-    if (cellHistory.length > 0) {
-      let lastCell = cellHistory.pop();
-      nextCell = unDrawCell(lastCell)
-      console.log (cellHistory.length)
-      state = "paused"
-      console.log (state)
-    }
+    goBackOneStep();
   } else if (keyCode === 221) { // "]" key
-    console.log(state)
-    if (nextCell != null) {
-      nextCell = drawCell(nextCell)
-      console.log (cellHistory.length)
-    }
+    advanceOneStep();
   }
 }
 
@@ -179,13 +190,32 @@ function unDrawCell(lastCell) {
   return findNextCell();
 }
 
+
+
+function advanceOneStep() {
+  console.log(gameState)
+  console.log("nextCell = " + nextCell.col + ", " + nextCell.row + " " + nextCell.state);
+
+  nextCell = drawCell(nextCell);
+}
+
 function drawCell(nextCell) {
+
   collapseNextCell(nextCell)
   setupGrid()
   drawNextCell(nextCell);
-  if (state != "error") {
+
+ // console.log(nextCell.state)
+
+if (nextCell.state === "STUCK") {
+  // gameState = "error"
+  // console.log(gameState)
+   // console.log("STUCKERSSSS")
+    return null;
+} else {
+   // console.log("NOT STUCK")
     return findNextCell();
-  }
+}
 }
 
 
@@ -209,16 +239,7 @@ function mousePressed() {
 function leftMousePressed() {
   let myCell = mouseOverCell();
   if (myCell != null) {
-    console.log("------------------")
-    if (myCell.state === "collapsed") {
-      console.log("{" + myCell.col + "," + myCell.row + "} collapsed, tileNumber " + myCell.options + ", numOptions = " + myCell.options.length)
-    }  else {
-      console.log("{" + myCell.col + "," + myCell.row + "} not collapsed, numOptions = " + myCell.options.length)
-      console.log("options...")
-      console.log(myCell.options)
-    }
-    console.log(myCell)
-    console.log("------------------")
+    console.log(myCell.state)
   }
 }
 
@@ -278,9 +299,12 @@ function allCellsDebugText(){
       let cell = grid [col + row * DIM];
      // if (cell.state === "collapsed") {
         let index = cell.options[0];
-        if (index == undefined) {
-          return
-        } else {
+     //   if (index == undefined) {
+      //    console.log(cell.state)
+          // console.log("undefined")
+          // console.log(index)
+          // return
+      //  } else {
           textSize(15);
           noStroke(); // Disable the stroke
           fill(255);
@@ -294,7 +318,8 @@ function allCellsDebugText(){
             , // Text to be drawn
             getRect(cell.col), // X coordinate of the text
             getRect(cell.row) // Y coordinate of the text
-          );      }
+          );     
+        // }
       //}
     }
   }
@@ -399,22 +424,26 @@ function findNextCell() {
   
   if (stopIndex > 0) gridCopy.splice(stopIndex);
   const nextCell = random(gridCopy);
+  nextCell.state = "nextCell"
   return nextCell
 }
 
 function collapseNextCell(cell) {
-  cell.step = stepCount++
+  cell.step = stepCount++ + 1
   cellHistory.push(cell)
-  cell.state = "collapsed"
+
   const pick = random(cell.options);
-  if (pick === undefined) { // If there are no options available, do something
-    state = "error"
-    console.log("ERROR")
-    console.log(cell)
-    return;
+
+  if (pick !== undefined){
+    cell.state = "collapsed"
   } else {
-    
+    cell.state = "STUCK"
+    gameState = "ERROR"
+    console.log("STUCK")
   }
+  
+  console.log("cell " + cell.step + ": " + cell.state)
+
   cell.options = [pick];
 }
 
@@ -424,7 +453,7 @@ function unCollapseCell(cell) {
   const pick = random(cell.options);
 
   if (pick === undefined) { // If there are no options available, do something
-    state = "error"
+    gameState = "error"
     return;
   }
   
@@ -437,8 +466,9 @@ function setupGrid(){
   // console.log(grid);
   for (let row = 0; row < DIM; row++) {
     for (let col = 0; col < DIM; col++) {
-        let index = col + row * DIM;
-      if (grid[index].state === "collapsed"){
+      let index = col + row * DIM;
+        
+      if (grid[index].state === "collapsed" || grid[index].state === "STUCK"){
         nextGrid[index] = grid[index];
       } else {
           let options = new Array(tiles.length).fill(0).map((x, col) => col);
@@ -494,4 +524,40 @@ function setupGrid(){
     grid = nextGrid; 
 }
 
+function createUIButtons(canvas) {
+  // Create the reverse button
+  const reverseButton = document.createElement("button");
+  reverseButton.textContent = "<<";
+  reverseButton.addEventListener("click", reverse);
+  reverseButton.style.marginRight = "10px";
 
+
+  // Create the fast forward button
+  const fastForwardButton = document.createElement("button");
+  fastForwardButton.textContent = ">>";
+  fastForwardButton.addEventListener("click", fastForward);
+  fastForwardButton.style.marginRight = "100px";
+
+  // Create the go back one step button
+  const backButton = document.createElement("button");
+  backButton.textContent = "|<";
+  backButton.addEventListener("click", goBackOneStep);
+  backButton.style.marginRight = "10px";
+
+
+  // Create the advance one step button
+  const advanceButton = document.createElement("button");
+  advanceButton.textContent = ">|";
+  advanceButton.addEventListener("click", advanceOneStep);
+ 
+
+
+
+
+  // Add the buttons to the document body
+  document.body.appendChild(reverseButton);
+  document.body.appendChild(fastForwardButton);
+  document.body.appendChild(backButton);
+  document.body.appendChild(advanceButton);
+  
+}
