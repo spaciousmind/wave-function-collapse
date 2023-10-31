@@ -1,3 +1,6 @@
+//#region PRELOAD
+// ========================================================================== //
+// 
 const tiles = [];
 const tileImages = [];
 let myCell = "";
@@ -7,14 +10,13 @@ let stepCount = 0; // Step counter
 let textSizeFactor = 0.4; // Set the text size to 80% of the cell size
 let nextCell = null
 let halfRed, halfWhite, halfYellow
-
-
-
+let pick = null
+var lastCell = null
 
 let grid = [];
 const cellHistory = []; // Create an array to store the cell history
 const canvasSize = 1000;
-const DIM = 6;
+const DIM = 5;
 const cellSize = canvasSize / DIM
 
 function preload() {
@@ -24,23 +26,23 @@ function preload() {
     console.log(`${path}${i}.jpg`)
   }
 }
-
-
+// ========================================================================== //
+// 
+//#endregion
 
 //#region SETUP_FUNCTIONS
+// ========================================================================== //
+// 
 
 function setup() {
   myCanvas = createCanvas(canvasSize, canvasSize);
   createUIButtons(myCanvas)
-  halfRed = color(255, 0, 0, 128); // Set the color to half-red
+  halfRed = color(255, 0, 0, 100); // Set the color to half-red
   halfWhite = color(255, 255, 255, 128); // Set the color to half-white
   halfYellow = color(255, 255, 0, 128); // Set the color to half-yellow
- 
-
-
   //let currentSeed = floor(random(1, 999)); // Set the seed value
-  
   let currentSeed = 846;
+  //currentSeed = random(1, 999); // Set the seed value
   randomSeed(currentSeed); // Set the seed value
   console.log("currentSeed = " + currentSeed);
 
@@ -85,17 +87,21 @@ function setup() {
   fillEdgesWithWater()
   setupGrid()
   //stepCount += 1;
-  console.log("step: " + stepCount)
+  console.log("step: " + cellHistory.length)
   console.log("first setup cells")
   console.log("--------------")
-//  console.log(nextCell)
+
   nextCell = findNextCell()
-  for (let i = 0; i < 12; i++) {
-    advanceOneStep()
-  }
-  // console.log(nextCell)
+
+ // advanceSteps(12)
+
 }
 
+function advanceSteps(num){
+  for (let i = 0; i < num; i++) {
+    advanceOneStep()
+  }
+}
 
 function fillEdgesWithWater(){
   for (let i = 0; i < grid.length; i++) {
@@ -128,11 +134,44 @@ function setupCells() {
   // console.log(state)
 }
 
+function createUIButtons(canvas) {
+  // Create the reverse button
+  const reverseButton = document.createElement("button");
+  reverseButton.textContent = "<<";
+  reverseButton.addEventListener("click", reverse);
+  reverseButton.style.marginRight = "10px";
+
+  // Create the fast forward button
+  const fastForwardButton = document.createElement("button");
+  fastForwardButton.textContent = ">>";
+  fastForwardButton.addEventListener("click", fastForward);
+  fastForwardButton.style.marginRight = "100px";
+
+  // Create the go back one step button
+  const backButton = document.createElement("button");
+  backButton.textContent = "|<";
+  backButton.addEventListener("click", undoOneStep);
+  backButton.style.marginRight = "10px";
+
+  // Create the advance one step button
+  const advanceButton = document.createElement("button");
+  advanceButton.textContent = ">|";
+  advanceButton.addEventListener("click", advanceOneStep);
+ 
+  // Add the buttons to the document body
+  document.body.appendChild(reverseButton);
+  document.body.appendChild(fastForwardButton);
+  document.body.appendChild(backButton);
+  document.body.appendChild(advanceButton);
+}
+
+// ========================================================================== //
 //#endregion
 
-
-
 //#region USER_INPUTS
+// ========================================================================== //
+// 
+
 function fastForward() {
   if (nextCell != null) {
     nextCell = drawCell(nextCell);
@@ -144,30 +183,11 @@ function fastForward() {
   }
 }
 
-function goBackOneStep() {
-  if (cellHistory.length > 0) {
-    let lastCell = cellHistory.pop();
-    nextCell = unDrawCell(lastCell);
-   // console.log(cellHistory.length);
-    intervalId = setInterval(function() {
-      let lastCell = cellHistory.pop();
-      nextCell = unDrawCell(lastCell);
-     // console.log(cellHistory.length);
-    }, 50);
-  }
-}
 
 
 
-function rewind() {
-  if (cellHistory.length > 0) {
-    let lastCell = cellHistory.pop();
-    nextCell = unDrawCell(lastCell);
-    console.log(cellHistory.length);
-    gameState = "paused";
-    console.log(state);
-  }
-}
+
+
 
 function keyPressed() {
   // if (state === "error") return
@@ -177,45 +197,66 @@ function keyPressed() {
   } else if (keyCode === RIGHT_ARROW) { // Right arrow key
     fastForward();
   } else if (keyCode === 219) { // "[" key
-    goBackOneStep();
+    undoOneStep();
   } else if (keyCode === 221) { // "]" key
     advanceOneStep();
   }
 }
 
-function unDrawCell(lastCell) {
+function restoreCellState(lastCell) {
   unCollapseCell(lastCell)
-  setupGrid()
+ // setupGrid()
  // unDrawLastCell(lastCell);
   return findNextCell();
 }
 
+function undoOneStep() {
+  if (cellHistory.length > 0) {
+    console.log("------------ |<")
 
+    lastCell = cellHistory.pop();
+    lastCell.state = "uncertain";
+    nextCell = restoreCellState(lastCell);
+    setupGrid()
 
-function advanceOneStep() {
-  console.log(gameState)
-  console.log("nextCell = " + nextCell.col + ", " + nextCell.row + " " + nextCell.state);
-
-  nextCell = drawCell(nextCell);
+   // console.log(cellHistory.length);
+    gameState = "paused";
+   // console.log(gameState);
+  }
 }
 
-function drawCell(nextCell) {
 
+// function rewind() {
+//   if (cellHistory.length > 0) {
+//     lastCell = cellHistory.pop();
+//     nextCell = unDrawCell(lastCell);
+//    // console.log(cellHistory.length);
+//     intervalId = setInterval(function() {
+//       lastCell = cellHistory.pop();
+//       nextCell = unDrawCell(lastCell);
+//      // console.log(cellHistory.length);
+//     }, 50);
+//   }
+// }
+
+function advanceOneStep() {
+  if (gameState != "STUCK"){ // If the game is not stuck, advance one step
+    console.log("------------ >|")
+    lastCell = nextCell
+    nextCell = drawCell(nextCell);
+  }
+}
+
+
+function drawCell(nextCell) {
   collapseNextCell(nextCell)
   setupGrid()
   drawNextCell(nextCell);
-
- // console.log(nextCell.state)
-
-if (nextCell.state === "STUCK") {
-  // gameState = "error"
-  // console.log(gameState)
-   // console.log("STUCKERSSSS")
-    return null;
-} else {
-   // console.log("NOT STUCK")
-    return findNextCell();
-}
+  if (nextCell.state === "STUCK") {
+      return null;
+  } else {
+      return findNextCell();
+  }
 }
 
 
@@ -241,12 +282,14 @@ function leftMousePressed() {
   if (myCell != null) {
     console.log(myCell.state)
   }
+
 }
 
 function rightMousePressed() {
   whiteSquare = true;
   console.log(nextCell)
   console.log(mouseOverCell().options)
+  setupGrid()
 }
 
 function mouseOverCell() {
@@ -275,36 +318,38 @@ function drawDebugText(col, row) {
   textSize(cellSize * textSizeFactor);
   fill(255);
   textAlign(CENTER, CENTER);
-  text(`(${col},${row})`, centerX , centerY);
+  text(`(${row},${col})`, centerX , centerY);
 }
 //#endregion
 
-
+//#region DRAW_LOOP
+// ========================================================================== //
+// 
 function draw() {
   background(20,20,20);
-  //if (state != "error") {
-    redrawCollapsedCells(); // Call the new function to redraw collapsed cells
-  //}
+  redrawCollapsedCells(); // Call the new function to redraw collapsed cells
   if (nextCell != null) {
     highlightCell(nextCell.col, nextCell.row, halfWhite);
   }
+  if (lastCell != null) {
+    highlightCell(lastCell.col, lastCell.row, halfRed);
+  }
+
   mouseOverCell()
   nextCellDebugText()
   allCellsDebugText()
+  gameDebugText()
 }
+//#endregion
 
+//#region DEBUG_FUNCTIONS
+// ========================================================================== //
+// 
 function allCellsDebugText(){
   for (let row = 0; row < DIM; row++) {
     for (let col = 0; col < DIM; col++) {
       let cell = grid [col + row * DIM];
-     // if (cell.state === "collapsed") {
-        let index = cell.options[0];
-     //   if (index == undefined) {
-      //    console.log(cell.state)
-          // console.log("undefined")
-          // console.log(index)
-          // return
-      //  } else {
+       // let index = cell.options[0];
           textSize(15);
           noStroke(); // Disable the stroke
           fill(255);
@@ -313,14 +358,12 @@ function allCellsDebugText(){
             ` grid pos xy: (${cell.row},${cell.col})\n` +
             ` step: ${cell.step}\n` +
             ` state: ${cell.state}\n` +
-            ` length of options: ${cell.options.length}\n`
-           // ` options: ${cell.options}`
+            ` length of options: ${cell.options.length}\n` +
+            ` options: ${cell.options}`
             , // Text to be drawn
             getRect(cell.col), // X coordinate of the text
             getRect(cell.row) // Y coordinate of the text
-          );     
-        // }
-      //}
+          );
     }
   }
 }
@@ -333,6 +376,21 @@ nextCellDebugText = () => {
     text(`(${nextCell.col},${nextCell.row})`, getRect(nextCell.col) + cellSize / 2, getRect(nextCell.row) + cellSize / 2);
   }
 }
+
+function gameDebugText() {
+  const x = width - 10;
+  const y = height - 10;
+  textSize(16);
+  textAlign(RIGHT, BOTTOM);
+  fill(255);
+  if (lastCell != null) {
+  text("lastCell: " + lastCell, x, y - 40);
+  }
+  text("gameState: " + gameState, x, y - 20);
+  text("cellHistory.length: " + cellHistory.length, x, y);
+}
+
+//#endregion
 
 function checkValid(arr, valid) {
   for (let i = arr.length - 1; i >= 0; i--) {
@@ -357,7 +415,6 @@ function redrawCollapsedCells() {
           image(tiles[index].img, getRect(col), getRect(row), cellSize, cellSize); // Draw the image of the collapsed tile
         } else {
           highlightCell(cell.col, cell.row, halfRed);
-          //console.log("RED CELL")
         }
       } else {
         fill(0);
@@ -382,7 +439,6 @@ function drawNextCell() {
   for (let row = 0; row < DIM; row++) {
     for (let col = 0; col < DIM; col++) {
       let cell = grid [col + row * DIM];
-
       if (cell.state === "collapsed") {
         let index = cell.options[0];
           if (index == undefined) {
@@ -423,16 +479,28 @@ function findNextCell() {
   }
   
   if (stopIndex > 0) gridCopy.splice(stopIndex);
+ // console.log(gridCopy.length)
+  
   const nextCell = random(gridCopy);
+
+  //is this breaking it?
   nextCell.state = "nextCell"
+
+
+  pick = random(nextCell.options);
+
+  if (pick == undefined){
+    console.log("ERRRRRRRRRROR")
+    gameState = "STUCK"
+    nextCell.state = "stuck"
+  }
+
   return nextCell
 }
 
 function collapseNextCell(cell) {
-  cell.step = stepCount++ + 1
+  cell.step = cellHistory.length + 1;
   cellHistory.push(cell)
-
-  const pick = random(cell.options);
 
   if (pick !== undefined){
     cell.state = "collapsed"
@@ -442,14 +510,25 @@ function collapseNextCell(cell) {
     console.log("STUCK")
   }
   
-  console.log("cell " + cell.step + ": " + cell.state)
+ // console.log("cell " + cell.step + ": " + cell.state)
+
+  // Save the original options before collapsing the cell
+  //cell.originalOptions = cell.options.slice();  // Make a copy of the options array
 
   cell.options = [pick];
+ // console.log(cell.options)
 }
 
 function unCollapseCell(cell) {
-  stepCount -= 1;
+ // stepCount -= 1;
+
+  // Restore the original options
+  //cell.options = cell.originalOptions.slice();  // Restore the original options array
+
   cell.state === "uncertain";
+
+  cell.options = new Array(tiles.length).fill(0).map((x, i) => i);
+
   const pick = random(cell.options);
 
   if (pick === undefined) { // If there are no options available, do something
@@ -457,21 +536,24 @@ function unCollapseCell(cell) {
     return;
   }
   
-  cell.options = [pick];
- // cell.options = new Array(tiles.length).fill(0).map((x, i) => i);
+  //cell.options = [pick];
+ //cell.options = new Array(tiles.length).fill(0).map((x, i) => i);
+// console.log(cell.options)
 }
 
 function setupGrid(){
-  const nextGrid = [];
-  // console.log(grid);
+  const updatedGrid = [];
   for (let row = 0; row < DIM; row++) {
     for (let col = 0; col < DIM; col++) {
       let index = col + row * DIM;
         
       if (grid[index].state === "collapsed" || grid[index].state === "STUCK"){
-        nextGrid[index] = grid[index];
+        updatedGrid[index] = grid[index];
       } else {
           let options = new Array(tiles.length).fill(0).map((x, col) => col);
+          // Debug: Log initial options
+       // console.log(`Initial options for cell at (${row}, ${col}):`, options);
+       // logOptionsForCellAtPosition(1, 2);
       //look up
           if (row > 0) {
             let up = grid[col + (row - 1) * DIM];
@@ -483,7 +565,10 @@ function setupGrid(){
             checkValid(options, validOptions);
           }
 
-          //look right
+          //  Debug: Log options after looking up
+          //  console.log(`Options after looking up for cell at (${row}, ${col}):`, options);
+          //  logOptionsForCellAtPosition(1, 2);
+          //  look right
           if (col < DIM - 1) {
             let right = grid[col + 1 + row * DIM];
             let validOptions = [];
@@ -493,7 +578,9 @@ function setupGrid(){
             }
             checkValid(options, validOptions);
           }
-
+          // Debug: Log options after looking up
+         // console.log(`Options after looking right for cell at (${row}, ${col}):`, options);
+         // logOptionsForCellAtPosition(1, 2);
           //look down
           if (row < DIM - 1) {
             let down = grid[col + (row + 1) * DIM];
@@ -504,7 +591,9 @@ function setupGrid(){
             }
               checkValid(options, validOptions);
           }
-
+// Debug: Log options after looking down
+//console.log(`Options after looking down for cell at (${row}, ${col}):`, options);
+//logOptionsForCellAtPosition(1, 2);
           //look left
           if (col > 0) {
             let left = grid[col - 1 + row * DIM];
@@ -516,48 +605,55 @@ function setupGrid(){
             checkValid(options, validOptions);
           }
 
+// Debug: Log options after looking left
+//console.log(`Options after looking left for cell at (${row}, ${col}):`, options);
+//console.log(`Options for cell at index ${index}:`, options);
+// Debug: Log options after looking down for cell at (${row}, ${col})
+if (index === 9) {
+  console.log(`Options after looking down for cell at (${row}, ${col}):`, options);
+}
+
+console.log (updatedGrid[9])
           //I could immediately collapse if only one option
-          nextGrid[index] = new Cell(options, col, row);
+          updatedGrid[index] = new Cell(options, col, row);
+
+// To use the function and log options for a specific cell (e.g., x: 1, y: 3)
+        //logOptionsForCellAtPosition(1, 2);
+
+
+        //  console.log(updatedGrid[index].row, (updatedGrid[index].col))
+        //  console.log(updatedGrid[index].options)
+        // Debug: Log options after setting up the cell
+      
+              // Check if the cell is at a specific position (e.g., x: 1, y: 3)
+              // if (col === 1 && row === 3) {
+              //   // Debug: Log options for the specific cell at (1, 3) after setting up the cell
+              //   console.log(`Options after setting up the cell at (${row}, ${col}):`, options);
+              // }
+      
+      
+      }
+      }
+    }
+    grid = updatedGrid;
+    console.log (grid[9])
+}
+
+function logOptionsForCellAtPosition(x, y) {
+  for (let row = 0; row < DIM; row++) {
+    for (let col = 0; col < DIM; col++) {
+      if (col === x && row === y) {
+        const index = col + row * DIM;
+        const cell = grid[index];
+
+        // Check if the cell is at the specified position (x, y)
+        if (cell.state !== "collapsed" && cell.state !== "STUCK") {
+          const options = new Array(tiles.length).fill(0).map((x, col) => col);
+
+          // Debug: Log options for the specific cell
+          console.log(`Options for cell at (${x}, ${y}):`, options);
         }
       }
     }
-    grid = nextGrid; 
-}
-
-function createUIButtons(canvas) {
-  // Create the reverse button
-  const reverseButton = document.createElement("button");
-  reverseButton.textContent = "<<";
-  reverseButton.addEventListener("click", reverse);
-  reverseButton.style.marginRight = "10px";
-
-
-  // Create the fast forward button
-  const fastForwardButton = document.createElement("button");
-  fastForwardButton.textContent = ">>";
-  fastForwardButton.addEventListener("click", fastForward);
-  fastForwardButton.style.marginRight = "100px";
-
-  // Create the go back one step button
-  const backButton = document.createElement("button");
-  backButton.textContent = "|<";
-  backButton.addEventListener("click", goBackOneStep);
-  backButton.style.marginRight = "10px";
-
-
-  // Create the advance one step button
-  const advanceButton = document.createElement("button");
-  advanceButton.textContent = ">|";
-  advanceButton.addEventListener("click", advanceOneStep);
- 
-
-
-
-
-  // Add the buttons to the document body
-  document.body.appendChild(reverseButton);
-  document.body.appendChild(fastForwardButton);
-  document.body.appendChild(backButton);
-  document.body.appendChild(advanceButton);
-  
+  }
 }
